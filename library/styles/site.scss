@@ -6,3 +6,88 @@ html, body, #wrap-outer {
     height: 100%;
     background: #fff;
 }
+
+#equation {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+
+    font-size: 2em;
+    line-height: 1;
+    height: 4em;
+    width: 100%;
+
+    .main {
+        position: relative;
+        width: 14em;
+        margin: auto;
+        height: 2em;
+        text-align: center;
+        color: $deep-grey-light;
+
+        span {
+            vertical-align: middle;
+        }
+    }
+
+    .box {
+        color: $deep-blue-dark;
+        max-width: 10ex;
+    }
+
+    .output,
+    .x-input {
+        color: rgba(0,0,0,0);
+    }
+
+    .box,
+    .x-input {
+        position: relative;
+        display: inline-block;
+        width: 5.5ex;
+        white-space: nowrap;
+        overflow: hidden;
+
+        &.long {
+            text-align: left;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .output-wrap,
+    .r-wrap {
+        position: relative;
+    }
+
+    .output,
+    .r {
+        position: absolute;
+        top: 0.11em;
+        display: block;
+        white-space: nowrap;
+    }
+
+    .r {
+        right: 1ex;
+        text-align: right;
+    }
+
+    .output {
+        left: 0.2ex;
+    }
+
+    .sq-bracket {
+        position: relative;
+        bottom: 0.11em;
+        font-size: 2em;
+    }
+
+    .c-bracket {
+        position: relative;
+        bottom: 0.1em;
+    }
+
+    .times {
+        font-size: 0.75em;
+    }
+}

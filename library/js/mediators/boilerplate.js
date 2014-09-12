@@ -2,12 +2,14 @@ define([
     'jquery',
     'moddef',
     'require',
-    'pixi'
+    'pixi',
+    'modules/logical-map-equation'
 ], function(
     $,
     M,
     require,
-    PIXI
+    PIXI,
+    Equation
 ) {
     'use strict';
 
@@ -176,6 +178,10 @@ define([
             });
 
             self.generate( 2*w, 2*h, rmin, rmax, xmin, xmax, imageScale );
+
+            this.equation = Equation({
+                el: '#equation'
+            });
         }
 
     }, ['events']);
