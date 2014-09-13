@@ -15,7 +15,6 @@ define([
         constructor: function( options ){
 
             var self = this;
-            this.x = options.x || 0.5;
 
             this.$el = $(options.el);
             this.$main = this.$el.find('.main');
@@ -24,6 +23,7 @@ define([
             this.$xsPlace = this.$el.find('.x-input');
             this.$outPlace = this.$el.find('.output');
 
+            this.setX(options.x || 0.5);
             this.setR(options.r || 3.5);
 
             this.$inLeft = this.box( this.$xsPlace.eq(0), this.x );
@@ -32,13 +32,19 @@ define([
             this.$outBox.css('width', 'auto');
 
             setInterval(function(){
-                // self.next();
+                self.next();
             }, 4000);
+        }
+
+        ,setX: function( x ){
+            this.x = x;
+            this.emit('set:x', x);
         }
 
         ,setR: function( r ){
             this.r = r;
             this.$r.text( r );
+            this.emit('set:r', r);
         }
 
         ,calc: function(){
@@ -129,8 +135,10 @@ define([
             this.x = this.calc();
 
             setTimeout(function(){
-                self.$outBox = self.box( self.$outPlace, self.calc() );
+                var val = self.calc();
+                self.$outBox = self.box( self.$outPlace, val );
                 self.$outBox.css('width', 'auto');
+                self.emit('next', val);
             }, 1000);
         }
     }, ['events']);

@@ -44,7 +44,7 @@ html, body, #wrap-outer {
     .x-input {
         position: relative;
         display: inline-block;
-        width: 5.5ex;
+        width: 5.6ex;
         white-space: nowrap;
         overflow: hidden;
 
@@ -70,6 +70,10 @@ html, body, #wrap-outer {
     .r {
         right: 1ex;
         text-align: right;
+        max-width: 10ex;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .output {

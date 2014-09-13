@@ -42,7 +42,7 @@ html, body, #wrap-outer {
 #equation .x-input {
   position: relative;
   display: inline-block;
-  width: 5.5ex;
+  width: 5.6ex;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -69,23 +69,27 @@ html, body, #wrap-outer {
 #equation .r {
   right: 1ex;
   text-align: right;
+  max-width: 10ex;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-/* line 75, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
+/* line 79, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
 #equation .output {
   left: 0.2ex;
 }
-/* line 79, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
+/* line 83, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
 #equation .sq-bracket {
   position: relative;
   bottom: 0.11em;
   font-size: 2em;
 }
-/* line 85, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
+/* line 89, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
 #equation .c-bracket {
   position: relative;
   bottom: 0.1em;
 }
-/* line 90, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
+/* line 94, /Users/wellcaffeinated/Documents/github/minutelabs/Chaotic-Fractal/library/styles/site.scss */
 #equation .times {
   font-size: 0.75em;
 }

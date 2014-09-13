@@ -3,12 +3,14 @@ define([
     'moddef',
     'require',
     'pixi',
+    'util/scale',
     'modules/logical-map-equation'
 ], function(
     $,
     M,
     require,
     PIXI,
+    Scale,
     Equation
 ) {
     'use strict';
@@ -25,14 +27,40 @@ define([
 
             var self = this;
 
+            this.rmin = 3.3;
+            this.rmax = 4;
+            this.xmin = 0;
+            this.xmax = 1;
             this.zoom = 1;
             this.tmpCanvas = document.createElement('canvas');
             this.tmpCtx = this.tmpCanvas.getContext( '2d' );
 
-            this.renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerWidth * 9/16, null, true);
+            this.width = window.innerWidth;
+            this.height = window.innerWidth * 9/16;
+
+            this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width ]);
+            this.yaxis = Scale([this.xmin, this.xmax], [ this.height, 0 ]);
+
+            this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
 			this.stage = new PIXI.Stage(0x000000, true);
 			this.stage.setInteractive(true);
 
+            this.bifurcationContainer = new PIXI.DisplayObjectContainer();
+            this.stage.addChild( this.bifurcationContainer );
+
+            this.rLine = new PIXI.Graphics();
+            this.rLine.lineStyle( 2, 0xcc0000, 0.4 );
+            this.rLine.moveTo(0, 0);
+            this.rLine.lineTo(0, this.height);
+            this.stage.addChild( this.rLine );
+
+            this.marker = new PIXI.Graphics();
+            this.marker.beginFill( 0xcc0000 );
+            this.marker.drawCircle(0, 0, 5);
+            this.marker.endFill();
+            this.stage.addChild( this.marker );
+
+            // worker
             this.worker = new Worker( require.toUrl('workers/bifurcation.js') );
             this.worker.onmessage = function(e) {
                 if ( typeof e.data === 'string' ){
@@ -82,6 +110,20 @@ define([
                 // self.zoom += 0.0001 * dt;
                 self.emit('zoom', self.zoom);
             });
+
+
+            function setR( e ){
+                var pos = e.global;
+
+                self.rLine.x = pos.x;
+
+                if ( self.equation ){
+                    self.equation.setR( self.xaxis.invert( pos.x ) );
+                }
+            }
+
+            // stage
+            this.stage.mousedown = setR;
         }
 
         ,generate: function( w, h, rmin, rmax, xmin, xmax, scale ){
@@ -126,17 +168,16 @@ define([
             var chart = document.getElementById( 'chart' );
             var w = this.renderer.width;
             var h = this.renderer.height;
-            var rmin = 3.3;
-            var rmax = 4;
-            var xmin = 0;
-            var xmax = 1;
+            var rmin = this.rmin;
+            var rmax = this.rmax;
+            var xmin = this.xmin;
+            var xmax = this.xmax;
             var imageScale = 1;
             var scaleCorrection = imageScale;
             var bifSprite;
-            var container = new PIXI.DisplayObjectContainer();
+            var container = this.bifurcationContainer;
             container.x = w/2;
             container.y = h/2;
-            stage.addChild( container );
 
             $(chart).append( this.renderer.view );
 
@@ -181,6 +222,13 @@ define([
 
             this.equation = Equation({
                 el: '#equation'
+            });
+
+            self.rLine.x = this.xaxis(this.equation.r);
+
+            this.equation.on('next', function( e, val ){
+                self.marker.x = self.rLine.x;
+                self.marker.y = self.yaxis( val );
             });
         }
 
