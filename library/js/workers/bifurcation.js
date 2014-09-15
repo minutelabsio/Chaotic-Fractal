@@ -10,7 +10,7 @@ var bufferRoute = function route( e ){
     backlog.push( e );
 };
 
-require(['moddef', 'util/scale'], function( M, Scale ){    
+require(['moddef', 'util/scale'], function( M, Scale ){
 
     function normal( top, bottom ){
         return top;
@@ -48,7 +48,7 @@ require(['moddef', 'util/scale'], function( M, Scale ){
             ,idx = (width * y + x) * 4
             ;
 
-        if ( idx < 0 || idx >= data.length ){
+        if ( x >= width || idx < 0 || idx >= data.length ){
             return;
         }
 
@@ -100,12 +100,12 @@ require(['moddef', 'util/scale'], function( M, Scale ){
                 ,precision = (max - r) / data.iterations
                 ;
 
-            while ( r < max ){
+            while ( r <= max ){
                 run( r, imgData, xaxis, yaxis, color, skip, keep );
                 r += precision;
             }
 
-            self.postMessage( { method: 'bifurcation', img: data.img }, [ imgData.buffer ] );
+            self.postMessage( { method: 'bifurcation', img: data.img, inputData: data }, [ imgData.buffer ] );
         }
     }, ['events'])();
 

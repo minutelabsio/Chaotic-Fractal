@@ -4,14 +4,18 @@ define([
     'require',
     'pixi',
     'util/scale',
-    'modules/logical-map-equation'
+    'modules/logical-map-equation',
+    'when',
+    'when/sequence'
 ], function(
     $,
     M,
     require,
     PIXI,
     Scale,
-    Equation
+    Equation,
+    when,
+    sequence
 ) {
     'use strict';
 
@@ -27,11 +31,11 @@ define([
 
             var self = this;
 
-            this.imgView = { x: [3.3, 4], y: [0, 1] };
-            this.rmin = 3.3;
+            this.imgView = { x: [3, 4], y: [0, 1] };
+            this.rmin = -2;
             this.rmax = 4;
-            this.xmin = 0;
-            this.xmax = 1;
+            this.xmin = -0.5;
+            this.xmax = 1.5;
             this.zoom = 1;
             this.resolution = 2;
             this.tmpCanvas = document.createElement('canvas');
@@ -40,8 +44,8 @@ define([
             this.width = window.innerWidth;
             this.height = window.innerWidth * 9/16;
 
-            this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width ]);
-            this.yaxis = Scale([this.xmin, this.xmax], [ 0, this.height ]);
+            this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
+            this.yaxis = Scale([this.xmin, this.xmax], [ 0, this.height * (this.xmax - this.xmin) ]);
 
             this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
 			this.stage = new PIXI.Stage(0x000000, true);
@@ -81,11 +85,11 @@ define([
 
                 self.tmpCtx.putImageData(e.data.img, 0, 0);
 
-                self.emit('generated', { canvas: self.tmpCanvas, ctx: self.tmpCtx });
+                self.emit('generated', { canvas: self.tmpCanvas, ctx: self.tmpCtx, inputData: e.data.inputData });
             };
 
             self.initEvents();
-            self.initDiagram();
+            self.initDiagram().then(function(){ self.resolve('fully-loaded'); });
 
             $(function(){
                 self.onDomReady();
@@ -136,19 +140,53 @@ define([
                 self.emit('zoom', self.zoom);
             });
 
+            $(window).on('resize', function(){
+                self.width = window.innerWidth;
+                self.height = window.innerWidth * 9/16;
+                self.renderer.resize(self.width, self.height);
+                self.emit('resize');
+            });
 
-            function setR( e ){
-                var pos = e.global;
+            // stage
+            var orig, start;
+            function grab( e ){
+                orig = { x: e.pageX, y: e.pageY };
+                start = self.bifurcationContainer.position.clone();
 
-                self.rLine.x = pos.x;
+                // self.rLine.x = pos.x;
+                //
+                // if ( self.equation ){
+                //     self.equation.setR( self.xaxis.invert( pos.x ) );
+                // }
+            }
 
-                if ( self.equation ){
-                    self.equation.setR( self.xaxis.invert( pos.x ) );
+            function move( e ){
+                var dr = { x: e.pageX, y: e.pageY };
+
+                if ( orig ){
+                    dr.x -= orig.x;
+                    dr.y -= orig.y;
+
+                    self.bifurcationContainer.x = start.x + dr.x;
+                    self.bifurcationContainer.y = start.y + dr.y;
                 }
             }
 
-            // stage
-            this.stage.mousedown = setR;
+            function release( e ){
+                var dr = { x: e.pageX, y: e.pageY };
+                dr.x = self.xaxis.invert(dr - orig.x);
+                dr.y = self.yaxis.invert(dr - orig.y);
+                self.imgView.x[0] += dr.x;
+                self.imgView.x[1] += dr.x;
+                self.imgView.y[0] += dr.y;
+                self.imgView.y[0] += dr.y;
+                start = orig = null;
+            }
+
+            $(document).on({
+                mousedown: grab
+                ,mousemove: move
+            }, '#chart').on('mouseup', release);
         }
 
         ,generate: function( w, h, rmin, rmax, xmin, xmax, res ){
@@ -172,7 +210,7 @@ define([
                     r: 10,
                     g: 10,
                     b: 10,
-                    alpha: 8
+                    alpha: 4 * res
                 }
             });
         }
@@ -180,7 +218,7 @@ define([
         ,positionDiagram: function(){
 
             var self = this
-                ,sprite = this.sprite
+                ,container = this.bifurcationContainer
                 ,xaxis = this.xaxis
                 ,yaxis = this.yaxis
                 ,res = this.resolution
@@ -190,10 +228,10 @@ define([
             var w = this.width;
             var h = this.height;
 
-            sprite.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0])) / res;
-            sprite.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0])) / res;
-            sprite.x = - (xaxis(v.x[0])) * sprite.scale.x * res;
-            sprite.y = - (yaxis(v.y[0])) * sprite.scale.y * res;
+            container.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0]));
+            container.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0]));
+            container.x = - (xaxis(v.x[0])) * container.scale.x;
+            container.y = (yaxis(v.y[0])) * container.scale.y;
         }
 
         ,initDiagram: function(){
@@ -206,47 +244,59 @@ define([
                 ,rmax = this.rmax
                 ,xmin = this.xmin
                 ,xmax = this.xmax
-                ,bifSprite
+                ,xaxis = this.xaxis
+                ,yaxis = this.yaxis
                 ,container = this.bifurcationContainer
+                ,jobs = []
                 ;
 
-            // container.x = w/2;
-            // container.y = h/2;
+            // loop over tiles
+            for ( var r = rmax-1; r >= rmin; r-- ){
+                for ( var x = xmax-1; x >= xmin; x-- ){
+                    // define a scope for vars
+                    (function(r, x, res){
+                        // push a job function into the jobs array
+                        jobs.push(function(){
 
-            this.on('generated', function( e, data ){
+                            var dfd = when.defer();
 
-                self.off(e.topic, e.handler);
+                            self.on('generated', function( e, data ){
 
-                setTimeout(function(){
-                    bifSprite = PIXI.Sprite.fromImage( data.canvas.toDataURL('image/png') );
-                    container.addChild( bifSprite );
-                    // bifSprite.width = w;
-                    // bifSprite.height = h;
-                    // bifSprite.anchor.x = 0.5;
-                    // bifSprite.anchor.y = 0.5;
-                    self.resolve('sprite-generated', bifSprite);
-                }, 10);
-            });
+                                var input = data.inputData;
+                                var x = xaxis( input.r[0] );
+                                var y = -yaxis( input.x[0] );
+                                self.off(e.topic, e.handler);
 
-            this.after('sprite-generated').then(function( sprite ){
-                self.sprite = sprite;
-                self.positionDiagram();
+                                setTimeout(function(){
+                                    var bifSprite = PIXI.Sprite.fromImage( data.canvas.toDataURL('image/png') );
+                                    container.addChild( bifSprite );
+                                    bifSprite.width = w;
+                                    bifSprite.height = h;
+                                    console.log(x,y, input.r, input.x)
+                                    bifSprite.x = x;
+                                    bifSprite.y = y;
+                                    dfd.resolve( bifSprite );
+                                }, 10);
+                            });
 
-                self.on('generated', function(){
+                            self.generate(
+                                w,
+                                h,
+                                r,
+                                r+1,
+                                x,
+                                x+1,
+                                res
+                            );
 
-                    sprite.setTexture( PIXI.Texture.fromImage( data.canvas.toDataURL('image/png') ) );
-                });
-            });
+                            return dfd.promise;
+                        });
+                    })(r, x, this.resolution);
+                }
+            }
 
-            this.generate(
-                w,
-                h,
-                rmin,
-                rmax,
-                xmin,
-                xmax,
-                this.resolution
-            );
+            // run jobs in sequence
+            return sequence( jobs );
         }
 
         // DomReady Callback
@@ -255,6 +305,7 @@ define([
             var self = this;
 
             $('#chart').append( this.renderer.view );
+            this.positionDiagram();
 
             this.equation = Equation({
                 el: '#equation'
