@@ -27,11 +27,13 @@ define([
 
             var self = this;
 
+            this.imgView = { x: [3.3, 4], y: [0, 1] };
             this.rmin = 3.3;
             this.rmax = 4;
             this.xmin = 0;
             this.xmax = 1;
             this.zoom = 1;
+            this.resolution = 2;
             this.tmpCanvas = document.createElement('canvas');
             this.tmpCtx = this.tmpCanvas.getContext( '2d' );
 
@@ -39,7 +41,7 @@ define([
             this.height = window.innerWidth * 9/16;
 
             this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width ]);
-            this.yaxis = Scale([this.xmin, this.xmax], [ this.height, 0 ]);
+            this.yaxis = Scale([this.xmin, this.xmax], [ 0, this.height ]);
 
             this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
 			this.stage = new PIXI.Stage(0x000000, true);
@@ -60,6 +62,10 @@ define([
             this.marker.endFill();
             this.stage.addChild( this.marker );
 
+            this.xAxisContainer = new PIXI.Graphics();
+            this.yAxisContainer = new PIXI.Graphics();
+            this.drawAxes();
+
             // worker
             this.worker = new Worker( require.toUrl('workers/bifurcation.js') );
             this.worker.onmessage = function(e) {
@@ -79,11 +85,30 @@ define([
             };
 
             self.initEvents();
+            self.initDiagram();
 
             $(function(){
                 self.onDomReady();
                 self.resolve('domready');
             });
+        }
+
+        ,drawAxes: function(){
+
+            var self = this
+                ,stage
+                ,x
+                ,y
+                ,inc
+                ;
+
+            y = self.yAxisContainer;
+            y.clear();
+            y.lineStyle( 1, 0x888888 );
+
+            inc = (self.yaxis.domain[1] - self.yaxis.domain[0]) / 5;
+            // TODO
+
         }
 
         // Initialize events
@@ -126,24 +151,22 @@ define([
             this.stage.mousedown = setR;
         }
 
-        ,generate: function( w, h, rmin, rmax, xmin, xmax, scale ){
+        ,generate: function( w, h, rmin, rmax, xmin, xmax, res ){
 
             var self = this;
             var worker = this.worker;
             var canvas = this.tmpCanvas;
             var ctx = this.tmpCtx;
-            var img = ctx.createImageData( w, h );
+            var img = ctx.createImageData( res * w, res * h );
 
-            // console.time('Create');
-            // console.log(w, h, rmin, rmax, xmin, xmax)
             worker.postMessage({
                 method: 'bifurcation',
                 img: img,
                 skip: 0,
-                keep: h * scale,
+                keep: h * res,
                 r: [ rmin, rmax ],
                 x: [ xmin, xmax ],
-                iterations: 10000,
+                iterations: res * 10000,
 
                 color: {
                     r: 10,
@@ -151,80 +174,93 @@ define([
                     b: 10,
                     alpha: 8
                 }
-                // color: {
-                //     r: 7,
-                //     g: 147,
-                //     b: 186,
-                //     alpha: 2
-                // }
             });
+        }
+
+        ,positionDiagram: function(){
+
+            var self = this
+                ,sprite = this.sprite
+                ,xaxis = this.xaxis
+                ,yaxis = this.yaxis
+                ,res = this.resolution
+                ,v = self.imgView
+                ;
+
+            var w = this.width;
+            var h = this.height;
+
+            sprite.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0])) / res;
+            sprite.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0])) / res;
+            sprite.x = - (xaxis(v.x[0])) * sprite.scale.x * res;
+            sprite.y = - (yaxis(v.y[0])) * sprite.scale.y * res;
+        }
+
+        ,initDiagram: function(){
+
+            var self = this
+                ,stage = this.stage
+                ,w = this.width
+                ,h = this.height
+                ,rmin = this.rmin
+                ,rmax = this.rmax
+                ,xmin = this.xmin
+                ,xmax = this.xmax
+                ,bifSprite
+                ,container = this.bifurcationContainer
+                ;
+
+            // container.x = w/2;
+            // container.y = h/2;
+
+            this.on('generated', function( e, data ){
+
+                self.off(e.topic, e.handler);
+
+                setTimeout(function(){
+                    bifSprite = PIXI.Sprite.fromImage( data.canvas.toDataURL('image/png') );
+                    container.addChild( bifSprite );
+                    // bifSprite.width = w;
+                    // bifSprite.height = h;
+                    // bifSprite.anchor.x = 0.5;
+                    // bifSprite.anchor.y = 0.5;
+                    self.resolve('sprite-generated', bifSprite);
+                }, 10);
+            });
+
+            this.after('sprite-generated').then(function( sprite ){
+                self.sprite = sprite;
+                self.positionDiagram();
+
+                self.on('generated', function(){
+
+                    sprite.setTexture( PIXI.Texture.fromImage( data.canvas.toDataURL('image/png') ) );
+                });
+            });
+
+            this.generate(
+                w,
+                h,
+                rmin,
+                rmax,
+                xmin,
+                xmax,
+                this.resolution
+            );
         }
 
         // DomReady Callback
         ,onDomReady: function(){
 
             var self = this;
-            var stage = this.stage;
-            var chart = document.getElementById( 'chart' );
-            var w = this.renderer.width;
-            var h = this.renderer.height;
-            var rmin = this.rmin;
-            var rmax = this.rmax;
-            var xmin = this.xmin;
-            var xmax = this.xmax;
-            var imageScale = 1;
-            var scaleCorrection = imageScale;
-            var bifSprite;
-            var container = this.bifurcationContainer;
-            container.x = w/2;
-            container.y = h/2;
 
-            $(chart).append( this.renderer.view );
-
-            self.on('generated', function( e, data ){
-
-                setTimeout(function(){
-                    if ( !bifSprite ){
-                        bifSprite = PIXI.Sprite.fromImage( data.canvas.toDataURL('image/png') );
-                        container.addChild( bifSprite );
-                        bifSprite.width = w;
-                        bifSprite.height = h;
-                        bifSprite.anchor.x = 0.5;
-                        bifSprite.anchor.y = 0.5;
-                        scaleCorrection = imageScale;
-                    } else {
-                        bifSprite.setTexture( PIXI.Texture.fromImage( data.canvas.toDataURL('image/png') ) );
-                        scaleCorrection = imageScale;
-                    }
-                },10);
-            });
-
-            self.on('zoom', function( e, zoom ){
-                var scale = Math.pow( 2, zoom - 1 );
-
-                if ( bifSprite ){
-                    bifSprite.width = w * scale / scaleCorrection;
-                    bifSprite.height = h * scale / scaleCorrection;
-
-                    if ( scale > 1.75 * imageScale ){
-                        imageScale = Math.floor( scale ) + 1;
-                        var wa = rmax - rmin;
-                        var dr = (wa - wa / imageScale) * 0.5;
-                        var wx = xmax - xmin;
-                        var dx = (wx - wx / imageScale) * 0.5;
-
-                        self.generate( 2*w, 2*h, rmin + dr, rmax - dr, xmin + dx, xmax - dx, imageScale );
-                    }
-                }
-            });
-
-            self.generate( 2*w, 2*h, rmin, rmax, xmin, xmax, imageScale );
+            $('#chart').append( this.renderer.view );
 
             this.equation = Equation({
                 el: '#equation'
             });
 
-            self.rLine.x = this.xaxis(this.equation.r);
+            this.rLine.x = this.xaxis(this.equation.r);
 
             this.equation.on('next', function( e, val ){
                 self.marker.x = self.rLine.x;
