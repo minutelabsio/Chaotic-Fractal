@@ -54,7 +54,7 @@ define([
             this.yaxis = Scale([this.xmin, this.xmax], [ 0, this.height * (this.xmax - this.xmin) ]);
 
             this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
-			this.stage = new PIXI.Stage(0x000000, true);
+			this.stage = new PIXI.Stage(0x000000);
 			this.stage.setInteractive(true);
 
             this.bifurcationContainer = new PIXI.DisplayObjectContainer();
@@ -178,14 +178,19 @@ define([
                 mc.on('panstart', grab)
                     .on('panmove', move)
                     .on('panend', release);
+
+                // $(document).on('mousewheel', '#chart', function( e ){
+                //     var z = e.originalEvent.deltaY / 1000;
+                //     self.zoomBy( z, z );
+                // });
             });
 
             this.after('init-diagram').then(function(){
                 self.positionDiagram();
                 self.on('frame', function( e, dt ){
-                    self.velocity.x *= 1-self.friction;
-                    self.velocity.y *= 1-self.friction;
-                    if ( (self.velocity.x + self.velocity.y) > 0.01 ){
+                    var x = self.velocity.x *= 1-self.friction;
+                    var y = self.velocity.y *= 1-self.friction;
+                    if ( (x*x + y*y) > 0.01 ){
                         self.panTo( -self.bifurcationContainer.x + self.velocity.x * dt, -self.bifurcationContainer.y + self.velocity.y * dt );
                     }
                 });
@@ -203,13 +208,27 @@ define([
 
             x = Math.min(Math.max(x, this.xaxis.range[0] - pad), this.xaxis.range[1] - this.width + pad);
             y = Math.min(Math.max(y, this.yaxis.range[0] - pad), this.yaxis.range[1] - this.height + pad);
-            
+
             self.bifurcationContainer.x = -x;
             self.bifurcationContainer.y = -y;
             self.imgView.x[0] = self.xaxis.invert(x);
             self.imgView.x[1] = self.xaxis.invert(x + self.width);
             self.imgView.y[0] = self.yaxis.invert(y);
             self.imgView.y[1] = self.yaxis.invert(y + self.height);
+        }
+
+        ,zoomBy: function( dzx, dzy ){
+
+            var container = this.bifurcationContainer;
+
+            container.scale.x *= Math.pow(2, dzx);
+            container.scale.y *= Math.pow(2, dzy);
+        }
+
+        ,scaleTo: function( sx, sy ){
+            var container = this.bifurcationContainer;
+            container.scale.x = sx;
+            container.scale.y = sy;
         }
 
         ,generate: function( w, h, rmin, rmax, xmin, xmax, res ){
@@ -251,8 +270,7 @@ define([
             var w = this.width;
             var h = this.height;
 
-            container.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0]));
-            container.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0]));
+            this.scaleTo(w / (xaxis(v.x[1]) - xaxis(v.x[0])), h / (yaxis(v.y[1]) - yaxis(v.y[0])));
             this.panTo((xaxis(v.x[0])) * container.scale.x, (yaxis(v.y[0])) * container.scale.y);
         }
 
