@@ -2,6 +2,7 @@ define([
     'jquery',
     'moddef',
     'require',
+    'hammerjs',
     'pixi',
     'util/scale',
     'modules/logical-map-equation',
@@ -11,6 +12,7 @@ define([
     $,
     M,
     require,
+    Hammer,
     PIXI,
     Scale,
     Equation,
@@ -38,6 +40,10 @@ define([
             this.xmax = 1.5;
             this.zoom = 1;
             this.resolution = 2;
+            this.friction = 0.1;
+            this.velocity = {x: 0, y: 0};
+            this.padding = 100;
+
             this.tmpCanvas = document.createElement('canvas');
             this.tmpCtx = this.tmpCanvas.getContext( '2d' );
 
@@ -148,45 +154,62 @@ define([
             });
 
             // stage
-            var orig, start;
+            var start;
             function grab( e ){
-                orig = { x: e.pageX, y: e.pageY };
+                self.flickBy( 0, 0 );
                 start = self.bifurcationContainer.position.clone();
-
-                // self.rLine.x = pos.x;
-                //
-                // if ( self.equation ){
-                //     self.equation.setR( self.xaxis.invert( pos.x ) );
-                // }
+                start.x *= -1;
+                start.y *= -1;
             }
 
             function move( e ){
-                var dr = { x: e.pageX, y: e.pageY };
-
-                if ( orig ){
-                    dr.x -= orig.x;
-                    dr.y -= orig.y;
-
-                    self.bifurcationContainer.x = start.x + dr.x;
-                    self.bifurcationContainer.y = start.y + dr.y;
-                }
+                self.panTo( start.x - e.deltaX, start.y - e.deltaY );
             }
 
             function release( e ){
-                var dr = { x: e.pageX, y: e.pageY };
-                dr.x = self.xaxis.invert(dr - orig.x);
-                dr.y = self.yaxis.invert(dr - orig.y);
-                self.imgView.x[0] += dr.x;
-                self.imgView.x[1] += dr.x;
-                self.imgView.y[0] += dr.y;
-                self.imgView.y[0] += dr.y;
-                start = orig = null;
+                self.panTo( start.x - e.deltaX, start.y - e.deltaY );
+                self.flickBy( e.velocityX, e.velocityY );
+                start = null;
             }
 
-            $(document).on({
-                mousedown: grab
-                ,mousemove: move
-            }, '#chart').on('mouseup', release);
+            this.after('domready').then(function(){
+                var mc = new Hammer(document.getElementById('chart'));
+                mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+                mc.on('panstart', grab)
+                    .on('panmove', move)
+                    .on('panend', release);
+            });
+
+            this.after('init-diagram').then(function(){
+                self.positionDiagram();
+                self.on('frame', function( e, dt ){
+                    self.velocity.x *= 1-self.friction;
+                    self.velocity.y *= 1-self.friction;
+                    if ( (self.velocity.x + self.velocity.y) > 0.01 ){
+                        self.panTo( -self.bifurcationContainer.x + self.velocity.x * dt, -self.bifurcationContainer.y + self.velocity.y * dt );
+                    }
+                });
+            });
+        }
+
+        ,flickBy: function( vx, vy ){
+
+            this.velocity.x = vx;
+            this.velocity.y = vy;
+        }
+
+        ,panTo: function( x, y ){
+            var self = this, pad = this.padding;
+
+            x = Math.min(Math.max(x, this.xaxis.range[0] - pad), this.xaxis.range[1] - this.width + pad);
+            y = Math.min(Math.max(y, this.yaxis.range[0] - pad), this.yaxis.range[1] - this.height + pad);
+            
+            self.bifurcationContainer.x = -x;
+            self.bifurcationContainer.y = -y;
+            self.imgView.x[0] = self.xaxis.invert(x);
+            self.imgView.x[1] = self.xaxis.invert(x + self.width);
+            self.imgView.y[0] = self.yaxis.invert(y);
+            self.imgView.y[1] = self.yaxis.invert(y + self.height);
         }
 
         ,generate: function( w, h, rmin, rmax, xmin, xmax, res ){
@@ -230,8 +253,7 @@ define([
 
             container.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0]));
             container.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0]));
-            container.x = - (xaxis(v.x[0])) * container.scale.x;
-            container.y = (yaxis(v.y[0])) * container.scale.y;
+            this.panTo((xaxis(v.x[0])) * container.scale.x, (yaxis(v.y[0])) * container.scale.y);
         }
 
         ,initDiagram: function(){
@@ -251,8 +273,8 @@ define([
                 ;
 
             // loop over tiles
-            for ( var r = rmax-1; r >= rmin; r-- ){
-                for ( var x = xmax-1; x >= xmin; x-- ){
+            for ( var r = rmax; r > rmin; r-- ){
+                for ( var x = xmax; x > xmin; x-- ){
                     // define a scope for vars
                     (function(r, x, res){
                         // push a job function into the jobs array
@@ -264,7 +286,7 @@ define([
 
                                 var input = data.inputData;
                                 var x = xaxis( input.r[0] );
-                                var y = -yaxis( input.x[0] );
+                                var y = yaxis( - input.x[0] );
                                 self.off(e.topic, e.handler);
 
                                 setTimeout(function(){
@@ -272,7 +294,7 @@ define([
                                     container.addChild( bifSprite );
                                     bifSprite.width = w;
                                     bifSprite.height = h;
-                                    console.log(x,y, input.r, input.x)
+                                    // console.log(x,y, input.r, input.x)
                                     bifSprite.x = x;
                                     bifSprite.y = y;
                                     dfd.resolve( bifSprite );
@@ -282,10 +304,10 @@ define([
                             self.generate(
                                 w,
                                 h,
+                                r-1,
                                 r,
-                                r+1,
+                                x-1,
                                 x,
-                                x+1,
                                 res
                             );
 
@@ -295,6 +317,7 @@ define([
                 }
             }
 
+            self.resolve('init-diagram');
             // run jobs in sequence
             return sequence( jobs );
         }
@@ -305,7 +328,6 @@ define([
             var self = this;
 
             $('#chart').append( this.renderer.view );
-            this.positionDiagram();
 
             this.equation = Equation({
                 el: '#equation'
