@@ -41,8 +41,12 @@ define([
             this.zoom = 1;
             this.resolution = 2;
             this.friction = 0.1;
+            this.position = new PIXI.Point();
             this.velocity = {x: 0, y: 0};
-            this.padding = 100;
+            this.minScale = {x: 0.25, y: 0.25};
+            this.maxScale = {x: 8, y: 8};
+            this.diagrams = [];
+            this.diagramsComplete = 1;
 
             this.tmpCanvas = document.createElement('canvas');
             this.tmpCtx = this.tmpCanvas.getContext( '2d' );
@@ -57,8 +61,12 @@ define([
 			this.stage = new PIXI.Stage(0x000000);
 			this.stage.setInteractive(true);
 
+            this.outerContainer = new PIXI.DisplayObjectContainer();
+            this.zoomContainer = new PIXI.DisplayObjectContainer();
             this.bifurcationContainer = new PIXI.DisplayObjectContainer();
-            this.stage.addChild( this.bifurcationContainer );
+            this.zoomContainer.addChild( this.bifurcationContainer );
+            this.outerContainer.addChild( this.zoomContainer );
+            this.stage.addChild( this.outerContainer );
 
             this.rLine = new PIXI.Graphics();
             this.rLine.lineStyle( 2, 0xcc0000, 0.4 );
@@ -95,12 +103,27 @@ define([
             };
 
             self.initEvents();
-            self.initDiagram().then(function(){ self.resolve('fully-loaded'); });
+            self.initDiagram().then(function(){
+                self.resolve('fully-loaded');
+                self.resolution = 4;
+                self.initDiagram().then(function(){
+                    self.resolution = 8;
+                    self.diagramsComplete++;
+                    self.zoomBy(0, 0);
+                    // self.initDiagram().then(function(){
+                    //     self.diagramsComplete++;
+                    //     self.zoomBy(0, 0);
+                    // });
+                });
+            });
+            self.diagrams[0].visible = true;
 
             $(function(){
                 self.onDomReady();
                 self.resolve('domready');
             });
+
+            this.emit('resize');
         }
 
         ,drawAxes: function(){
@@ -153,22 +176,29 @@ define([
                 self.emit('resize');
             });
 
+            this.on('resize', function(){
+                var cn = self.zoomContainer;
+                cn.x = self.width * 0.5;
+                cn.y = self.height * 0.5;
+                self.positionDiagram();
+            });
+
             // stage
             var start;
             function grab( e ){
                 self.flickBy( 0, 0 );
-                start = self.bifurcationContainer.position.clone();
-                start.x *= -1;
-                start.y *= -1;
+                start = self.position.clone();
             }
 
             function move( e ){
-                self.panTo( start.x - e.deltaX, start.y - e.deltaY );
+                self.panTo( start.x - e.deltaX/self.zoomContainer.scale.x, start.y - e.deltaY/self.zoomContainer.scale.y );
             }
 
             function release( e ){
-                self.panTo( start.x - e.deltaX, start.y - e.deltaY );
-                self.flickBy( e.velocityX, e.velocityY );
+                var sx = 1/self.zoomContainer.scale.x;
+                var sy = 1/self.zoomContainer.scale.y;
+                self.panTo( start.x - e.deltaX * sy, start.y - e.deltaY * sy );
+                self.flickBy( e.velocityX * sx, e.velocityY * sy );
                 start = null;
             }
 
@@ -179,10 +209,11 @@ define([
                     .on('panmove', move)
                     .on('panend', release);
 
-                // $(document).on('mousewheel', '#chart', function( e ){
-                //     var z = e.originalEvent.deltaY / 1000;
-                //     self.zoomBy( z, z );
-                // });
+                $(document).on('mousewheel', '#chart', function( e ){
+                    e.preventDefault();
+                    var z = -e.originalEvent.deltaY / 1000;
+                    self.zoomBy( z, z );
+                });
             });
 
             this.after('init-diagram').then(function(){
@@ -191,7 +222,7 @@ define([
                     var x = self.velocity.x *= 1-self.friction;
                     var y = self.velocity.y *= 1-self.friction;
                     if ( (x*x + y*y) > 0.01 ){
-                        self.panTo( -self.bifurcationContainer.x + self.velocity.x * dt, -self.bifurcationContainer.y + self.velocity.y * dt );
+                        self.panTo( self.position.x + self.velocity.x * dt, self.position.y + self.velocity.y * dt );
                     }
                 });
             });
@@ -204,13 +235,15 @@ define([
         }
 
         ,panTo: function( x, y ){
-            var self = this, pad = this.padding;
+            var self = this;
 
-            x = Math.min(Math.max(x, this.xaxis.range[0] - pad), this.xaxis.range[1] - this.width + pad);
-            y = Math.min(Math.max(y, this.yaxis.range[0] - pad), this.yaxis.range[1] - this.height + pad);
+            x = Math.min(Math.max(x, this.xaxis.range[0] - 0.5*this.width), this.xaxis.range[1] - 0.5*this.width);
+            y = Math.min(Math.max(y, this.yaxis.range[0] - 0.5*this.height), this.yaxis.range[1] - 0.5*this.height);
 
-            self.bifurcationContainer.x = -x;
-            self.bifurcationContainer.y = -y;
+            self.position.x = x;
+            self.position.y = y;
+            self.bifurcationContainer.x = -x-self.zoomContainer.x;
+            self.bifurcationContainer.y = -y-self.zoomContainer.y;
             self.imgView.x[0] = self.xaxis.invert(x);
             self.imgView.x[1] = self.xaxis.invert(x + self.width);
             self.imgView.y[0] = self.yaxis.invert(y);
@@ -219,16 +252,31 @@ define([
 
         ,zoomBy: function( dzx, dzy ){
 
-            var container = this.bifurcationContainer;
+            var container = this.zoomContainer;
 
-            container.scale.x *= Math.pow(2, dzx);
-            container.scale.y *= Math.pow(2, dzy);
+            this.scaleTo(
+                container.scale.x * Math.pow(2, dzx),
+                container.scale.y * Math.pow(2, dzy)
+            );
         }
 
         ,scaleTo: function( sx, sy ){
-            var container = this.bifurcationContainer;
+            var container = this.zoomContainer, idx;
+            sx = Math.min(this.maxScale.x, Math.max(this.minScale.x, sx));
+            sy = Math.min(this.maxScale.y, Math.max(this.minScale.y, sy));
+            idx = Math.min(this.diagramsComplete-1, Math.round( Math.log(Math.max(1, Math.ceil(sx-1))) / Math.log(2) ));
+            // console.log(sx, idx)
+            if ( idx !== this.idx ){
+                this.idx = idx;
+                for ( var i = 0, l = this.diagrams.length; i < l; i++ ){
+                    this.diagrams[i].visible = false;
+                }
+
+                this.diagrams[ idx ].visible = true;
+            }
             container.scale.x = sx;
             container.scale.y = sy;
+            this.panTo( this.position.x, this.position.y );
         }
 
         ,generate: function( w, h, rmin, rmax, xmin, xmax, res ){
@@ -252,7 +300,7 @@ define([
                     r: 10,
                     g: 10,
                     b: 10,
-                    alpha: 4 * res
+                    alpha: 2
                 }
             });
         }
@@ -270,7 +318,8 @@ define([
             var w = this.width;
             var h = this.height;
 
-            this.scaleTo(w / (xaxis(v.x[1]) - xaxis(v.x[0])), h / (yaxis(v.y[1]) - yaxis(v.y[0])));
+            container.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0]));
+            container.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0]));
             this.panTo((xaxis(v.x[0])) * container.scale.x, (yaxis(v.y[0])) * container.scale.y);
         }
 
@@ -282,17 +331,23 @@ define([
                 ,h = this.height
                 ,rmin = this.rmin
                 ,rmax = this.rmax
+                ,rinc = 1/this.resolution
                 ,xmin = this.xmin
                 ,xmax = this.xmax
+                ,xinc = xmax - xmin
                 ,xaxis = this.xaxis
                 ,yaxis = this.yaxis
-                ,container = this.bifurcationContainer
+                ,container = new PIXI.DisplayObjectContainer()
                 ,jobs = []
                 ;
 
+            container.visible = false;
+            this.diagrams.push(container);
+            this.bifurcationContainer.addChild( container );
+
             // loop over tiles
-            for ( var r = rmax; r > rmin; r-- ){
-                for ( var x = xmax; x > xmin; x-- ){
+            for ( var r = rmax; r > rmin; r-=rinc ){
+                // for ( var x = xmax; x > xmin; x-- ){
                     // define a scope for vars
                     (function(r, x, res){
                         // push a job function into the jobs array
@@ -304,14 +359,14 @@ define([
 
                                 var input = data.inputData;
                                 var x = xaxis( input.r[0] );
-                                var y = yaxis( - input.x[0] );
+                                var y = yaxis( - input.x[0] -1);
                                 self.off(e.topic, e.handler);
 
                                 setTimeout(function(){
                                     var bifSprite = PIXI.Sprite.fromImage( data.canvas.toDataURL('image/png') );
                                     container.addChild( bifSprite );
-                                    bifSprite.width = w;
-                                    bifSprite.height = h;
+                                    bifSprite.width = w * rinc;
+                                    bifSprite.height = h * xinc;
                                     // console.log(x,y, input.r, input.x)
                                     bifSprite.x = x;
                                     bifSprite.y = y;
@@ -322,17 +377,17 @@ define([
                             self.generate(
                                 w,
                                 h,
-                                r-1,
+                                r-rinc,
                                 r,
-                                x-1,
+                                x-xinc,
                                 x,
                                 res
                             );
 
                             return dfd.promise;
                         });
-                    })(r, x, this.resolution);
-                }
+                    })(r, xmax, this.resolution);
+                //}
             }
 
             self.resolve('init-diagram');
