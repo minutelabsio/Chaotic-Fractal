@@ -94,7 +94,7 @@ require(['moddef', 'util/scale'], function( M, Scale ){
                 ,skip = data.skip | 0
                 ,keep = data.keep | 0
                 ,xaxis = Scale(data.r, [ 0, width ])
-                ,yaxis = Scale(data.x, [ height, 0 ])
+                ,yaxis = Scale(data.x, [ 0, height ])
                 ,r = data.r[0]
                 ,max = data.r[1]
                 ,precision = (max - r) / data.iterations

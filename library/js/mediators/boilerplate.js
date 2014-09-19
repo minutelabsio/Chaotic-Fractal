@@ -45,6 +45,7 @@ define([
             this.velocity = {x: 0, y: 0};
             this.minScale = {x: 0.25, y: 0.25};
             this.maxScale = {x: 8, y: 8};
+            this.unscale = [];
             this.diagrams = [];
             this.diagramsComplete = 1;
 
@@ -55,30 +56,36 @@ define([
             this.height = window.innerWidth * 9/16;
 
             this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
-            this.yaxis = Scale([this.xmin, this.xmax], [ 0, this.height * (this.xmax - this.xmin) ]);
+            this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin -1), -this.height]);
 
-            this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
+            if ( window.Modernizr.touch ){
+				this.renderer = new PIXI.CanvasRenderer(this.width, this.height, null, true);
+			} else {
+				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
+			}
 			this.stage = new PIXI.Stage(0x000000);
 			this.stage.setInteractive(true);
 
-            this.outerContainer = new PIXI.DisplayObjectContainer();
+            this.panContainer = new PIXI.DisplayObjectContainer();
             this.zoomContainer = new PIXI.DisplayObjectContainer();
             this.bifurcationContainer = new PIXI.DisplayObjectContainer();
-            this.zoomContainer.addChild( this.bifurcationContainer );
-            this.outerContainer.addChild( this.zoomContainer );
-            this.stage.addChild( this.outerContainer );
+            this.panContainer.addChild( this.bifurcationContainer );
+            this.zoomContainer.addChild( this.panContainer );
+            this.stage.addChild( this.zoomContainer );
 
             this.rLine = new PIXI.Graphics();
             this.rLine.lineStyle( 2, 0xcc0000, 0.4 );
-            this.rLine.moveTo(0, 0);
-            this.rLine.lineTo(0, this.height);
-            this.stage.addChild( this.rLine );
+            this.rLine.moveTo(0, this.yaxis.range[1] - this.height*0.5);
+            this.rLine.lineTo(0, this.yaxis.range[0] + this.height*0.5);
+            this.panContainer.addChild( this.rLine );
+            this.unscale.push(this.rLine);
 
             this.marker = new PIXI.Graphics();
             this.marker.beginFill( 0xcc0000 );
             this.marker.drawCircle(0, 0, 5);
             this.marker.endFill();
-            this.stage.addChild( this.marker );
+            this.panContainer.addChild( this.marker );
+            this.unscale.push(this.marker);
 
             this.xAxisContainer = new PIXI.Graphics();
             this.yAxisContainer = new PIXI.Graphics();
@@ -238,16 +245,23 @@ define([
             var self = this;
 
             x = Math.min(Math.max(x, this.xaxis.range[0] - 0.5*this.width), this.xaxis.range[1] - 0.5*this.width);
-            y = Math.min(Math.max(y, this.yaxis.range[0] - 0.5*this.height), this.yaxis.range[1] - 0.5*this.height);
+            y = Math.min(Math.max(y, this.yaxis.range[1] - 0.5*this.height), this.yaxis.range[0] - 0.5*this.height);
 
             self.position.x = x;
             self.position.y = y;
-            self.bifurcationContainer.x = -x-self.zoomContainer.x;
-            self.bifurcationContainer.y = -y-self.zoomContainer.y;
+            self.panContainer.x = -x-self.zoomContainer.x;
+            self.panContainer.y = -y-self.zoomContainer.y;
             self.imgView.x[0] = self.xaxis.invert(x);
             self.imgView.x[1] = self.xaxis.invert(x + self.width);
             self.imgView.y[0] = self.yaxis.invert(y);
             self.imgView.y[1] = self.yaxis.invert(y + self.height);
+        }
+
+        ,setR: function( r ){
+            var x = this.xaxis( +r );
+            this._r = r;
+            this.rLine.x = x;
+            this.marker.x = x;
         }
 
         ,zoomBy: function( dzx, dzy ){
@@ -276,6 +290,12 @@ define([
             }
             container.scale.x = sx;
             container.scale.y = sy;
+
+            for ( var i = 0, l = this.unscale.length; i < l; i++ ){
+                this.unscale[ i ].scale.x = 1/sx;
+                this.unscale[ i ].scale.y = 1/sy;
+            }
+
             this.panTo( this.position.x, this.position.y );
         }
 
@@ -308,7 +328,7 @@ define([
         ,positionDiagram: function(){
 
             var self = this
-                ,container = this.bifurcationContainer
+                ,container = this.panContainer
                 ,xaxis = this.xaxis
                 ,yaxis = this.yaxis
                 ,res = this.resolution
@@ -359,7 +379,7 @@ define([
 
                                 var input = data.inputData;
                                 var x = xaxis( input.r[0] );
-                                var y = yaxis( - input.x[0] -1);
+                                var y = yaxis( input.x[0] );
                                 self.off(e.topic, e.handler);
 
                                 setTimeout(function(){
@@ -370,6 +390,7 @@ define([
                                     // console.log(x,y, input.r, input.x)
                                     bifSprite.x = x;
                                     bifSprite.y = y;
+                                    bifSprite.scale.y = -1;
                                     dfd.resolve( bifSprite );
                                 }, 10);
                             });
@@ -406,11 +427,11 @@ define([
                 el: '#equation'
             });
 
-            this.rLine.x = this.xaxis(this.equation.r);
+            self.setR(this.equation.r);
 
             this.equation.on('next', function( e, val ){
-                self.marker.x = self.rLine.x;
-                self.marker.y = self.yaxis( val );
+                var y = self.yaxis( val );
+                self.marker.y = y;
             });
         }
 
