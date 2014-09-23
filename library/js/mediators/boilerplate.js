@@ -3,6 +3,7 @@ define([
     'moddef',
     'require',
     'hammerjs',
+    'd3',
     'pixi',
     'util/scale',
     'modules/logical-map-equation',
@@ -13,6 +14,7 @@ define([
     M,
     require,
     Hammer,
+    d3,
     PIXI,
     Scale,
     Equation,
@@ -33,7 +35,7 @@ define([
 
             var self = this;
 
-            this.imgView = { x: [3, 4], y: [0, 1] };
+            this.imgView = { x: [3, 4], y: [1, 0] };
             this.rmin = -2;
             this.rmax = 4;
             this.xmin = -0.5;
@@ -42,18 +44,20 @@ define([
             this.resolution = 2;
             this.friction = 0.1;
             this.position = new PIXI.Point();
+            this.scale = new PIXI.Point(1,1);
             this.velocity = {x: 0, y: 0};
             this.minScale = {x: 0.25, y: 0.25};
             this.maxScale = {x: 8, y: 8};
             this.unscale = [];
             this.diagrams = [];
             this.diagramsComplete = 1;
+            this.axisThickness = 60;
 
             this.tmpCanvas = document.createElement('canvas');
             this.tmpCtx = this.tmpCanvas.getContext( '2d' );
 
-            this.width = window.innerWidth;
-            this.height = window.innerWidth * 9/16;
+            this.width = window.innerWidth - self.axisThickness;
+            this.height = this.width * 9/16;
 
             this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
             this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin -1), -this.height]);
@@ -75,8 +79,8 @@ define([
 
             this.rLine = new PIXI.Graphics();
             this.rLine.lineStyle( 2, 0xcc0000, 0.4 );
-            this.rLine.moveTo(0, this.yaxis.range[1] - this.height*0.5);
-            this.rLine.lineTo(0, this.yaxis.range[0] + this.height*0.5);
+            this.rLine.moveTo(0, this.yaxis.range[1] - this.height);
+            this.rLine.lineTo(0, this.yaxis.range[0] + this.height);
             this.panContainer.addChild( this.rLine );
             this.unscale.push(this.rLine);
 
@@ -86,10 +90,6 @@ define([
             this.marker.endFill();
             this.panContainer.addChild( this.marker );
             this.unscale.push(this.marker);
-
-            this.xAxisContainer = new PIXI.Graphics();
-            this.yAxisContainer = new PIXI.Graphics();
-            this.drawAxes();
 
             // worker
             this.worker = new Worker( require.toUrl('workers/bifurcation.js') );
@@ -133,21 +133,58 @@ define([
             this.emit('resize');
         }
 
+        ,initAxes: function(){
+            var self = this
+                ,svg
+                ,x
+                ,y
+                ;
+
+            self.d3xAxis = d3.svg.axis();
+            self.d3yAxis = d3.svg.axis().orient('left');
+            self.d3xScale = d3.scale.linear().range([0, this.width]);
+            self.d3yScale = d3.scale.linear().range([0, this.height]);
+
+            y = d3.select( '#chart' ).append( 'svg' ).attr('class', 'yaxis')
+                .attr('width', this.axisThickness)
+                .attr('height', self.height + self.axisThickness)
+                ;
+
+            x = d3.select( '#chart' ).append( 'svg' ).attr('class', 'xaxis')
+                .attr('width', this.width)
+                .attr('height', this.axisThickness)
+                ;
+
+            self.d3xAxisEl = x.append('g')
+                .call( self.d3xAxis )
+                ;
+
+            self.d3yAxisEl = y.append('g')
+                .attr('transform', 'translate('+this.axisThickness+',0)')
+                .call( self.d3yAxis )
+                ;
+
+            this.on('resize', function(){
+                x.attr('width', self.width);
+                y.attr('height', self.height + self.axisThickness);
+                self.drawAxes();
+            });
+
+            self.drawAxes();
+        }
+
         ,drawAxes: function(){
 
             var self = this
-                ,stage
-                ,x
-                ,y
-                ,inc
+                ,x = self.d3xScale.domain( self.imgView.x )
+                ,y = self.d3yScale.domain( self.imgView.y )
                 ;
 
-            y = self.yAxisContainer;
-            y.clear();
-            y.lineStyle( 1, 0x888888 );
+            self.d3xAxis.scale( x );
+            self.d3yAxis.scale( y );
 
-            inc = (self.yaxis.domain[1] - self.yaxis.domain[0]) / 5;
-            // TODO
+            self.d3xAxisEl.call( self.d3xAxis );
+            self.d3yAxisEl.call( self.d3yAxis );
 
         }
 
@@ -177,8 +214,8 @@ define([
             });
 
             $(window).on('resize', function(){
-                self.width = window.innerWidth;
-                self.height = window.innerWidth * 9/16;
+                self.width = window.innerWidth - self.axisThickness;
+                self.height = self.width * 9/16;
                 self.renderer.resize(self.width, self.height);
                 self.emit('resize');
             });
@@ -242,7 +279,10 @@ define([
         }
 
         ,panTo: function( x, y ){
-            var self = this;
+            var self = this
+                ,hw = 0.5 * self.width
+                ,hh = 0.5 * self.height
+                ;
 
             x = Math.min(Math.max(x, this.xaxis.range[0] - 0.5*this.width), this.xaxis.range[1] - 0.5*this.width);
             y = Math.min(Math.max(y, this.yaxis.range[1] - 0.5*this.height), this.yaxis.range[0] - 0.5*this.height);
@@ -251,10 +291,12 @@ define([
             self.position.y = y;
             self.panContainer.x = -x-self.zoomContainer.x;
             self.panContainer.y = -y-self.zoomContainer.y;
-            self.imgView.x[0] = self.xaxis.invert(x);
-            self.imgView.x[1] = self.xaxis.invert(x + self.width);
-            self.imgView.y[0] = self.yaxis.invert(y);
-            self.imgView.y[1] = self.yaxis.invert(y + self.height);
+            self.imgView.x[0] = self.xaxis.invert(x - hw / self.scale.x + hw);
+            self.imgView.x[1] = self.xaxis.invert(x + hw / self.scale.x + hw);
+            self.imgView.y[0] = self.yaxis.invert(y - hh / self.scale.y + hh);
+            self.imgView.y[1] = self.yaxis.invert(y + hh / self.scale.y + hh);
+
+            self.emit('pan', [x, y]);
         }
 
         ,setR: function( r ){
@@ -288,8 +330,8 @@ define([
 
                 this.diagrams[ idx ].visible = true;
             }
-            container.scale.x = sx;
-            container.scale.y = sy;
+            this.scale.x = container.scale.x = sx;
+            this.scale.y = container.scale.y = sy;
 
             for ( var i = 0, l = this.unscale.length; i < l; i++ ){
                 this.unscale[ i ].scale.x = 1/sx;
@@ -390,7 +432,7 @@ define([
                                     // console.log(x,y, input.r, input.x)
                                     bifSprite.x = x;
                                     bifSprite.y = y;
-                                    bifSprite.scale.y = -1;
+                                    bifSprite.scale.y *= -1;
                                     dfd.resolve( bifSprite );
                                 }, 10);
                             });
@@ -421,7 +463,8 @@ define([
 
             var self = this;
 
-            $('#chart').append( this.renderer.view );
+            self.initAxes();
+            $('#chart .xaxis').before( this.renderer.view );
 
             this.equation = Equation({
                 el: '#equation'
@@ -432,6 +475,10 @@ define([
             this.equation.on('next', function( e, val ){
                 var y = self.yaxis( val );
                 self.marker.y = y;
+            });
+
+            this.on('pan', function(){
+                self.drawAxes();
             });
         }
 

@@ -24,6 +24,7 @@ require.config({
 
         // Templating
         'dot' : 'vendor/doT',
+        'd3' : 'vendor/d3',
 
         // MVC
         'stapes': 'vendor/stapes',
