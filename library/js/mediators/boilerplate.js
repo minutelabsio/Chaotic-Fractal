@@ -246,12 +246,17 @@ define([
                 start = null;
             }
 
+            function changeR( e ){
+                self.setR( self.getPlotValues(e.center.x - self.axisThickness, 0)[0] );
+            }
+
             this.after('domready').then(function(){
                 var mc = new Hammer(document.getElementById('chart'));
                 mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
                 mc.on('panstart', grab)
                     .on('panmove', move)
-                    .on('panend', release);
+                    .on('panend', release)
+                    .on('tap', changeR);
 
                 $(document).on('mousewheel', '#chart', function( e ){
                     e.preventDefault();
@@ -299,11 +304,26 @@ define([
             self.emit('pan', [x, y]);
         }
 
+        ,getPlotValues: function( x, y ){
+
+            var self = this
+                ,hw = 0.5 * self.width
+                ,hh = 0.5 * self.height
+                ;
+
+            return [
+                self.xaxis.invert(self.position.x + x - hw / self.scale.x + hw)
+                ,self.yaxis.invert(self.position.y + y - hh / self.scale.y + hh)
+            ];
+        }
+
         ,setR: function( r ){
             var x = this.xaxis( +r );
             this._r = r;
             this.rLine.x = x;
             this.marker.x = x;
+
+            this.emit('change:r', r);
         }
 
         ,zoomBy: function( dzx, dzy ){
@@ -471,6 +491,10 @@ define([
             });
 
             self.setR(this.equation.r);
+
+            this.on('change:r', function( e, r ){
+                self.equation.setR( r );
+            });
 
             this.equation.on('next', function( e, val ){
                 var y = self.yaxis( val );
