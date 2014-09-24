@@ -167,6 +167,8 @@ define([
             this.on('resize', function(){
                 x.attr('width', self.width);
                 y.attr('height', self.height + self.axisThickness);
+                self.d3xScale.range([0, self.width]);
+                self.d3yScale.range([0, self.height]);
                 self.drawAxes();
             });
 
@@ -224,7 +226,7 @@ define([
                 var cn = self.zoomContainer;
                 cn.x = self.width * 0.5;
                 cn.y = self.height * 0.5;
-                self.positionDiagram();
+                self.panTo( self.position.x, self.position.y );
             });
 
             // stage
@@ -296,10 +298,12 @@ define([
             self.position.y = y;
             self.panContainer.x = -x-self.zoomContainer.x;
             self.panContainer.y = -y-self.zoomContainer.y;
-            self.imgView.x[0] = self.xaxis.invert(x - hw / self.scale.x + hw);
-            self.imgView.x[1] = self.xaxis.invert(x + hw / self.scale.x + hw);
-            self.imgView.y[0] = self.yaxis.invert(y - hh / self.scale.y + hh);
-            self.imgView.y[1] = self.yaxis.invert(y + hh / self.scale.y + hh);
+            if ( self.positioned ){
+                self.imgView.x[0] = self.xaxis.invert(x - hw / self.scale.x + hw);
+                self.imgView.x[1] = self.xaxis.invert(x + hw / self.scale.x + hw);
+                self.imgView.y[0] = self.yaxis.invert(y - hh / self.scale.y + hh);
+                self.imgView.y[1] = self.yaxis.invert(y + hh / self.scale.y + hh);
+            }
 
             self.emit('pan', [x, y]);
         }
@@ -399,6 +403,8 @@ define([
 
             var w = this.width;
             var h = this.height;
+
+            self.positioned = true;
 
             container.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0]));
             container.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0]));
