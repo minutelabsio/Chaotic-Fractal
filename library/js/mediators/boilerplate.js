@@ -7,6 +7,7 @@ define([
     'pixi',
     'util/scale',
     'modules/logical-map-equation',
+    'modules/slide-manager',
     'when',
     'when/sequence'
 ], function(
@@ -18,6 +19,7 @@ define([
     PIXI,
     Scale,
     Equation,
+    SlideManager,
     when,
     sequence
 ) {
@@ -61,6 +63,11 @@ define([
 
             this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
             this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin -1), -this.height]);
+
+            // this.on('resize', function(){
+            //     this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
+            //     this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin -1), -this.height]);
+            // }, this);
 
             if ( window.Modernizr.touch ){
 				this.renderer = new PIXI.CanvasRenderer(this.width, this.height, null, true);
@@ -226,6 +233,7 @@ define([
                 var cn = self.zoomContainer;
                 cn.x = self.width * 0.5;
                 cn.y = self.height * 0.5;
+
                 self.panTo( self.position.x, self.position.y );
             });
 
@@ -316,12 +324,15 @@ define([
                 ;
 
             return [
-                self.xaxis.invert(self.position.x + x - hw / self.scale.x + hw)
-                ,self.yaxis.invert(self.position.y + y - hh / self.scale.y + hh)
+                self.xaxis.invert(self.position.x + (x - hw) / self.scale.x + hw)
+                ,self.yaxis.invert(self.position.y + (y - hh) / self.scale.y + hh)
             ];
         }
 
         ,setR: function( r ){
+
+            r = Math.min( Math.max(r, this.rmin), this.rmax );
+
             var x = this.xaxis( +r );
             this._r = r;
             this.rLine.x = x;
@@ -492,8 +503,12 @@ define([
             self.initAxes();
             $('#chart .xaxis').before( this.renderer.view );
 
+            this.slides = SlideManager({
+                el: '#story'
+            });
+
             this.equation = Equation({
-                el: '#equation'
+                el: '.equation'
             });
 
             self.setR(this.equation.r);

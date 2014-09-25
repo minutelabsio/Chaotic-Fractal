@@ -9,6 +9,9 @@ require.config({
 
     shim: {
         // Add shims for things here
+        'tween': {
+            exports: 'TWEEN'
+        }
     },
 
     paths: {
@@ -36,6 +39,7 @@ require.config({
         'hammerjs': 'vendor/hammer',
 
         'pixi': 'vendor/pixi',
+        'tween': 'vendor/tween',
 
         // draw helper
         'canvas-draw': 'modules/canvas-draw',

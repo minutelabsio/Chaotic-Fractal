@@ -2,9 +2,53 @@
 @import 'compass/css3';
 @import '_vars';
 
+/* This parent can be any width and height */
+.hv-container,
+.h-container {
+  text-align: center;
+}
+
+/* The ghost, nudged to maintain perfect centering */
+.hv-container,
+.v-container {
+    height: 100%;
+
+    &:before {
+      content: '';
+      display: inline-block;
+      height: 100%;
+      vertical-align: middle;
+      margin-right: -0.35em; /* Adjusts for spacing */
+    }
+}
+
+/* The element to be centered, can
+   also be of any width and height */
+.hv-container,
+.h-container,
+.v-container {
+    .content {
+      display: inline-block;
+      vertical-align: middle;
+    }
+}
+
 html, body, #wrap-outer {
     height: 100%;
     background: #fff;
+}
+
+#story {
+    section {
+        width: 100%;
+        @extend .hv-container;
+
+        .content {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+        }
+    }
 }
 
 #chart {
@@ -36,7 +80,7 @@ html, body, #wrap-outer {
     }
 }
 
-#equation {
+.equation {
     position: absolute;
     bottom: 0;
     left: 0;
