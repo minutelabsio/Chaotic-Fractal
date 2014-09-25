@@ -1,6 +1,8 @@
 // site styles
+
 @import 'compass/css3';
 @import '_vars';
+@import '_jquery.nouislider';
 
 /* This parent can be any width and height */
 .hv-container,
@@ -81,9 +83,6 @@ html, body, #wrap-outer {
 }
 
 .equation {
-    position: absolute;
-    bottom: 0;
-    left: 0;
 
     font-size: 2em;
     line-height: 1;
@@ -166,5 +165,35 @@ html, body, #wrap-outer {
 
     .times {
         font-size: 0.75em;
+    }
+}
+
+.slide1 {
+    .noUi-connect {
+        background: $red-dark;
+    }
+
+    .slider-wrap {
+        margin: 1em 0;
+        span {
+            margin: 0 1ex;
+        }
+    }
+    .slider {
+        position: relative;
+        top: 0.2em;
+        display: inline-block;
+        width: 20em;
+    }
+
+    .eq-demo {
+        margin: 3em 0 1em;
+        .equation {
+            height: 1.3em;
+        }
+        .equation .x-input {
+            width: auto;
+            color: $red-dark;
+        }
     }
 }

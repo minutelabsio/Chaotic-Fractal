@@ -36,6 +36,7 @@ require.config({
 
         // jQuery
         'jquery': 'vendor/jquery',
+        'jquery.nouislider': 'vendor/jquery.nouislider.min',
         'hammerjs': 'vendor/hammer',
 
         'pixi': 'vendor/pixi',

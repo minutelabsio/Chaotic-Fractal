@@ -1,5 +1,6 @@
 define([
     'jquery',
+    'jquery.nouislider',
     'moddef',
     'require',
     'hammerjs',
@@ -12,6 +13,7 @@ define([
     'when/sequence'
 ], function(
     $,
+    _jqnoui,
     M,
     require,
     Hammer,
@@ -508,7 +510,7 @@ define([
             });
 
             this.equation = Equation({
-                el: '.equation'
+                el: '.moving-equation'
             });
 
             self.setR(this.equation.r);
@@ -524,6 +526,20 @@ define([
 
             this.on('pan', function(){
                 self.drawAxes();
+            });
+
+            // sliders
+            var $slide1 = $('.slide1');
+            var $slide1Inputs = $slide1.find('.x-input');
+            $slide1.find('.eq-demo .slider').noUiSlider({
+                start: 0.5
+                ,connect: 'lower'
+                ,range: {
+                    min: 0
+                    ,max: 1
+                }
+            }).on('set slide', function(){
+                $slide1Inputs.html( $(this).val() );
             });
         }
 

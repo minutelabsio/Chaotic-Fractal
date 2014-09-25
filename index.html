@@ -3,12 +3,29 @@ layout: default
 ---
 
 <div id="story">
-<section>
+<section class="slide1">
     <div class="content">
         Choose a number just for fun,<br/>
         between (but not including) 0 and 1.<br/>
         Subtract it from 1 to get another,<br/>
         and multiply it by the other.
+
+        <div class="eq-demo">
+            <div class="equation">
+                <div class="main">
+                    <span class="x-input">0.5</span>
+                    <span class="times">x</span>
+                    <span class="c-bracket">(</span>
+                    <span>1 - </span>
+                    <span class="x-input">0.5</span>
+                    <span class="c-bracket">)</span>
+                </div>
+            </div>
+
+            <div class="slider-wrap">
+                <span>0</span><div class="slider"></div><span>1</span>
+            </div>
+        </div>
     </div>
 </section>
 <section>
@@ -39,7 +56,7 @@ layout: default
 
 </div>
 <div id="chart"></div>
-<div class="equation">
+<div class="equation moving-equation">
     <div class="main">
         <span class="r-wrap"><span class="r">0.000</span></span>
         <span class="times">x</span>
