@@ -3,6 +3,8 @@ define([
     'jquery.nouislider',
     'moddef',
     'require',
+    'tween',
+    'util/helpers',
     'hammerjs',
     'd3',
     'pixi',
@@ -16,6 +18,8 @@ define([
     _jqnoui,
     M,
     require,
+    TWEEN,
+    helpers,
     Hammer,
     d3,
     PIXI,
@@ -54,14 +58,14 @@ define([
             this.maxScale = {x: 8, y: 8};
             this.unscale = [];
             this.diagrams = [];
+            this.markers = [];
             this.diagramsComplete = 1;
             this.axisThickness = 60;
 
             this.tmpCanvas = document.createElement('canvas');
             this.tmpCtx = this.tmpCanvas.getContext( '2d' );
 
-            this.width = window.innerWidth - self.axisThickness;
-            this.height = this.width * 9/16;
+            this.resize();
 
             this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
             this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin -1), -this.height]);
@@ -87,18 +91,11 @@ define([
             this.stage.addChild( this.zoomContainer );
 
             this.rLine = new PIXI.Graphics();
-            this.rLine.lineStyle( 2, 0xcc0000, 0.4 );
+            this.rLine.lineStyle( 2, 0x555555, 0.4 );
             this.rLine.moveTo(0, this.yaxis.range[1] - this.height);
             this.rLine.lineTo(0, this.yaxis.range[0] + this.height);
             this.panContainer.addChild( this.rLine );
             this.unscale.push(this.rLine);
-
-            this.marker = new PIXI.Graphics();
-            this.marker.beginFill( 0xcc0000 );
-            this.marker.drawCircle(0, 0, 5);
-            this.marker.endFill();
-            this.panContainer.addChild( this.marker );
-            this.unscale.push(this.marker);
 
             // worker
             this.worker = new Worker( require.toUrl('workers/bifurcation.js') );
@@ -155,26 +152,29 @@ define([
             self.d3yScale = d3.scale.linear().range([0, this.height]);
 
             y = d3.select( '#chart' ).append( 'svg' ).attr('class', 'yaxis')
+                .style('margin-top', '-20px')
                 .attr('width', this.axisThickness)
                 .attr('height', self.height + self.axisThickness)
                 ;
 
             x = d3.select( '#chart' ).append( 'svg' ).attr('class', 'xaxis')
-                .attr('width', this.width)
+                .style('margin-left', '-40px')
+                .attr('width', this.width + 40)
                 .attr('height', this.axisThickness)
                 ;
 
             self.d3xAxisEl = x.append('g')
+                .attr('transform', 'translate(40,0)')
                 .call( self.d3xAxis )
                 ;
 
             self.d3yAxisEl = y.append('g')
-                .attr('transform', 'translate('+this.axisThickness+',0)')
+                .attr('transform', 'translate('+this.axisThickness+',20)')
                 .call( self.d3yAxis )
                 ;
 
             this.on('resize', function(){
-                x.attr('width', self.width);
+                x.attr('width', self.width + 40);
                 y.attr('height', self.height + self.axisThickness);
                 self.d3xScale.range([0, self.width]);
                 self.d3yScale.range([0, self.height]);
@@ -199,6 +199,13 @@ define([
 
         }
 
+        ,resize: function(){
+            this.width = window.innerWidth - this.axisThickness;
+            this.height = this.width * 9/16;
+
+            this.height = Math.min( this.height, window.innerHeight - this.axisThickness - 200 );
+        }
+
         // Initialize events
         ,initEvents: function(){
 
@@ -220,13 +227,11 @@ define([
             // other events
             self.on('frame', function( e, dt ){
 
-                // self.zoom += 0.0001 * dt;
-                self.emit('zoom', self.zoom);
+                TWEEN.update();
             });
 
             $(window).on('resize', function(){
-                self.width = window.innerWidth - self.axisThickness;
-                self.height = self.width * 9/16;
+                self.resize();
                 self.renderer.resize(self.width, self.height);
                 self.emit('resize');
             });
@@ -259,7 +264,12 @@ define([
             }
 
             function changeR( e ){
-                self.setR( self.getPlotValues(e.center.x - self.axisThickness, 0)[0] );
+                var vals = self.getPlotValues(e.center.x - self.axisThickness, e.center.y - self.axisThickness + 20);
+                // if ( vals[0] > 0 ){
+                //     vals[1] = Math.min(Math.max(vals[1], 0), 1);
+                // }
+                self.setR( vals[0] );
+                self.emit( 'set:x', vals[1] );
             }
 
             this.after('domready').then(function(){
@@ -270,8 +280,9 @@ define([
                     .on('panend', release)
                     .on('tap', changeR);
 
-                $(document).on('mousewheel', '#chart', function( e ){
+                $('#chart').on('mousewheel', function( e ){
                     e.preventDefault();
+                    e.stopImmediatePropagation();
                     var z = -e.originalEvent.deltaY / 1000;
                     self.zoomBy( z, z );
                 });
@@ -331,6 +342,67 @@ define([
             ];
         }
 
+        ,markerAt: function( x, y ){
+            var self = this
+                ,tween
+                ,marker = new PIXI.Graphics()
+                ,lines = {
+                    count: 1
+                    ,max: 4
+                    ,radius: 8
+                    ,opacity: 1
+                    ,color: 0x009C0D
+                    ,amount: 6
+                }
+                ;
+
+            marker.x = x;
+            marker.y = y;
+            marker.scale.x = 1/this.scale.x;
+            marker.scale.y = 1/this.scale.y;
+
+            tween = new TWEEN.Tween( lines )
+                .to( { count: lines.amount }, 3000 )
+                .onUpdate(function(){
+                    var val = Math.min(this.max, this.count);
+                    var frac;
+                    marker.clear();
+
+                    if ( this.count < (this.max - 1) ){
+                        marker.lineStyle( 1, this.color, 1 );
+                        marker.drawCircle( 0, 0, this.radius );
+                    }
+
+                    for ( var i = 1; i < val; i++ ){
+                        frac = Math.max(0, helpers.lerp( 1, 0, ( this.count - i ) / lines.max ));
+                        marker.lineStyle( 1, this.color, frac * this.opacity );
+                        marker.drawCircle( 0, 0, frac * this.radius  );
+                    }
+                })
+                .onComplete(function(){
+                    var idx = self.markers.indexOf( marker );
+                    if ( idx > -1 ){
+                        self.markers.splice( idx, 1 );
+                        self.panContainer.removeChild( marker );
+                    }
+                })
+                .start()
+                ;
+
+            marker.tween = tween;
+            this.panContainer.addChild( marker );
+            this.markers.push( marker );
+        }
+
+        ,clearMarkers: function(){
+            for ( var i = 0, l = this.markers.length; i < l; i++ ){
+                this.markers[i].tween.stop();
+                this.panContainer.removeChild( this.markers[i] );
+            }
+
+            this.markers = [];
+        }
+
         ,setR: function( r ){
 
             r = Math.min( Math.max(r, this.rmin), this.rmax );
@@ -338,8 +410,8 @@ define([
             var x = this.xaxis( +r );
             this._r = r;
             this.rLine.x = x;
-            this.marker.x = x;
 
+            this.clearMarkers();
             this.emit('change:r', r);
         }
 
@@ -355,6 +427,7 @@ define([
 
         ,scaleTo: function( sx, sy ){
             var container = this.zoomContainer, idx;
+            var i, l;
             sx = Math.min(this.maxScale.x, Math.max(this.minScale.x, sx));
             sy = Math.min(this.maxScale.y, Math.max(this.minScale.y, sy));
             idx = Math.min(this.diagramsComplete-1, Math.round( Math.log(Math.max(1, Math.ceil(sx-1))) / Math.log(2) ));
@@ -370,9 +443,14 @@ define([
             this.scale.x = container.scale.x = sx;
             this.scale.y = container.scale.y = sy;
 
-            for ( var i = 0, l = this.unscale.length; i < l; i++ ){
+            for ( i = 0, l = this.unscale.length; i < l; i++ ){
                 this.unscale[ i ].scale.x = 1/sx;
                 this.unscale[ i ].scale.y = 1/sy;
+            }
+
+            for ( i = 0, l = this.markers.length; i < l; i++ ){
+                this.markers[ i ].scale.x = 1/sx;
+                this.markers[ i ].scale.y = 1/sy;
             }
 
             this.panTo( this.position.x, this.position.y );
@@ -501,6 +579,7 @@ define([
         ,onDomReady: function(){
 
             var self = this;
+            var vals = { x: 0.5, r: 3.3 };
 
             self.initAxes();
             $('#chart .xaxis').before( this.renderer.view );
@@ -510,7 +589,10 @@ define([
             });
 
             this.equation = Equation({
-                el: '.moving-equation'
+                el: '.chart-slide .moving-equation'
+                ,x: vals.x
+                ,r: vals.r
+                // ,animate: false
             });
 
             self.setR(this.equation.r);
@@ -521,7 +603,7 @@ define([
 
             this.equation.on('next', function( e, val ){
                 var y = self.yaxis( val );
-                self.marker.y = y;
+                self.markerAt( self.rLine.x, y );
             });
 
             this.on('pan', function(){
@@ -530,17 +612,93 @@ define([
 
             // sliders
             var $slide1 = $('.slide1');
-            var $slide1Inputs = $slide1.find('.x-input');
+            var $slide1XInputs = $slide1.find('.x-input');
+            var $slide2 = $('.slide2');
+            var $slide2XInputs = $slide2.find('.x-input');
+            var $slide2RInput = $slide2.find('.r');
+            var $chartSlide = $('.chart-slide');
+
             $slide1.find('.eq-demo .slider').noUiSlider({
-                start: 0.5
+                start: vals.x
                 ,connect: 'lower'
                 ,range: {
-                    min: 0
-                    ,max: 1
+                    min: 0.01
+                    ,max: 0.99
                 }
             }).on('set slide', function(){
-                $slide1Inputs.html( $(this).val() );
+                var val = $(this).val();
+                vals.x = val;
+                $slide1XInputs.html( val );
+                $slide2XInputs.html( val );
             });
+
+            $slide2.find('.eq-demo .slider').noUiSlider({
+                start: vals.r
+                ,connect: 'lower'
+                ,range: {
+                    min: 3
+                    ,max: 3.99
+                }
+            }).on('set slide', function(){
+                var val = $(this).val();
+                vals.r = val;
+                $slide2RInput.html( val );
+            });
+
+            var eqn = Equation({
+                el: '.slide3 .moving-equation'
+                ,x: vals.x
+                ,r: vals.r
+            });
+
+            // equation animation tickers
+            var ticker1 = helpers.Interval( 4000, function(){
+                eqn.next();
+            });
+            ticker1.pause( this.slides.page !== 2 );
+
+            var ticker2 = helpers.Interval( 3000, function(){
+                self.equation.next();
+            });
+            ticker2.pause( this.slides.page !== 4 );
+
+            self.on('set:x', function( e, x ){
+                self.equation.$inLeft.hide();
+                self.equation.$inRight.hide();
+                self.equation.setBoxVal(self.equation.$outBox.show(), x);
+                self.equation.emit('next', x);
+                ticker2.refresh();
+            });
+
+            // turn on/off equations when slides change to correct page
+            this.slides.on('changing', function( e, pages ){
+                if ( pages.next === 2 || pages.next === 4 ){
+                    eqn.setR( vals.r );
+                    eqn.setX( vals.x );
+                    self.equation.setR( vals.r );
+                    self.equation.setX( vals.x );
+                    self.setR( vals.r );
+                }
+            }).on('page', function( e, page ){
+                ticker1.pause( page !== 2 );
+                ticker2.pause( page !== 4 );
+            });
+
+
+            $chartSlide.find('.slider').noUiSlider({
+                start: Math.exp(1)
+                ,connect: 'lower'
+                ,range: {
+                    min: 1
+                    ,max: Math.exp(4 - 0.06)
+                }
+            }).on('set slide', function(){
+                var val = 4000 - (Math.log($(this).val())*1000)|0;
+                self.equation.doAnimation = ( val > 1000 )
+                ticker2.duration = val;
+            });
+
+            $('body').removeClass('loading');
         }
 
     }, ['events']);

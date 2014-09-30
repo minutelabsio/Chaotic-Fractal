@@ -40,10 +40,50 @@ html, body, #wrap-outer {
     background: #fff;
 }
 
+.noUi-handle {
+    border-color: $grey-dark;
+
+    &:before,
+    &:after {
+        background: $grey-dark;
+    }
+}
+
+.noUi-target {
+    border-color: $grey-dark;
+}
+
+body.loading {
+    overflow: hidden;
+    &:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        background: #fff url(http://labs.minutelabs.io/assets/images/loader/logo-loading2.gif) no-repeat center 40%;
+    }
+
+    &:after {
+        content: 'loading...';
+        position: absolute;
+        z-index: 2;
+        top: 62%;
+        left: 50%;
+        font-size: 3em;
+        margin-left: -1.7em;
+        color: $deep-grey-dark;
+    }
+}
+
 #story {
     section {
         width: 100%;
         @extend .hv-container;
+        font-size: 1.5em;
+        line-height: 1.7;
 
         .content {
             display: inline-block;
@@ -56,6 +96,7 @@ html, body, #wrap-outer {
 #chart {
     width: 100%;
 
+    .xaxis,
     .yaxis {
         float: left;
     }
@@ -168,7 +209,7 @@ html, body, #wrap-outer {
     }
 }
 
-.slide1 {
+#story section {
     .noUi-connect {
         background: $red-dark;
     }
@@ -176,12 +217,12 @@ html, body, #wrap-outer {
     .slider-wrap {
         margin: 1em 0;
         span {
-            margin: 0 1ex;
+            margin: 0 2ex;
         }
     }
     .slider {
         position: relative;
-        top: 0.2em;
+        top: 0.03em;
         display: inline-block;
         width: 20em;
     }
@@ -193,7 +234,41 @@ html, body, #wrap-outer {
         }
         .equation .x-input {
             width: auto;
-            color: $red-dark;
         }
+    }
+}
+
+.slide1 {
+
+    .eq-demo .equation .x-input {
+        color: $red-dark;
+    }
+}
+
+.slide2 {
+
+    .eq-demo .equation .x-input {
+        color: $deep-grey-dark;
+    }
+
+    .eq-demo .equation .r {
+        position: relative;
+        right: 0;
+        top: -0.1em;
+        display: inline-block;
+        color: $red-dark;
+    }
+}
+
+.slide3 {
+    .equation {
+        margin-top: 1em;
+        font-size: 1.8em;
+    }
+}
+
+.chart-slide {
+    .equation {
+        font-size: 1.5em;
     }
 }

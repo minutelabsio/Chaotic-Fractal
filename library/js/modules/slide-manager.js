@@ -43,8 +43,18 @@ define([
             });
 
             // swiping
+            var start;
             var mc = Hammer( this.$el[0] );
+            mc.on('panstart', function( e ){
+                start = $(document).scrollTop();
+            });
             mc.on('panend', function( e ){
+                if ( $(document).scrollTop() === start ){
+                    // if we didn't scroll, do nothing
+                    return;
+                }
+
+                start = null;
                 if ( e.velocityY > 0.5 ){
                     self.goto('next');
                 } else if ( e.velocityY < -0.5 ){
@@ -54,7 +64,7 @@ define([
                 }
             });
             this.$el.on('mousewheel', function( e ){
-                if ( self.tween ){
+                if ( self.tween || e.originalEvent.defaultPrevented ){
                     e.preventDefault();
                     return;
                 }
@@ -86,6 +96,12 @@ define([
             }
 
             page = Math.max(0, Math.min(this.$slides.length - 1, page));
+
+            if ( page === this.page ){
+                return;
+            }
+
+            this.emit('changing', { prev: this.page, next: page });
             this.page = page;
 
             var pos = this.$slides.eq( page ).offset().top;
@@ -104,6 +120,7 @@ define([
                 })
                 .onComplete(function(){
                     self.tween = null;
+                    self.emit('page', self.page);
                 })
                 .start()
                 ;

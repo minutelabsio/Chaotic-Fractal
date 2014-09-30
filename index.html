@@ -13,11 +13,11 @@ layout: default
         <div class="eq-demo">
             <div class="equation">
                 <div class="main">
-                    <span class="x-input">0.5</span>
+                    <span class="x-input">0.50</span>
                     <span class="times">x</span>
                     <span class="c-bracket">(</span>
                     <span>1 - </span>
-                    <span class="x-input">0.5</span>
+                    <span class="x-input">0.50</span>
                     <span class="c-bracket">)</span>
                 </div>
             </div>
@@ -28,49 +28,95 @@ layout: default
         </div>
     </div>
 </section>
-<section>
+<section class="slide2">
     <div class="content">
         Next we need to choose one more,<br/>
-        this time between 1 and 4.<br/>
+        this time between 3 and 4.<br/>
         Call it "r" so we don’t lose track.<br/>
         (For future iterations we’ll need it back)
+
+        <div class="eq-demo">
+            <div class="equation">
+                <div class="main">
+                    <span class="r-wrap"><span class="r">3.30</span></span>
+                    <span class="times">x</span>
+                    <span class="x-input">0.50</span>
+                    <span class="times">x</span>
+                    <span class="c-bracket">(</span>
+                    <span>1 - </span>
+                    <span class="x-input">0.50</span>
+                    <span class="c-bracket">)</span>
+                </div>
+            </div>
+
+            <div class="slider-wrap">
+                <span>3</span><div class="slider"></div><span>4</span>
+            </div>
+        </div>
     </div>
 </section>
-<section>
+<section class="slide3">
     <div class="content">
         The final expression is not so complex:<br/>
         "r" times "x" times "1 - x"<br/>
         The result becomes "x" reborn!<br/>
-        Repeating the process will adorn…
+        Repeating the process will adorn...
+
+        <div class="equation moving-equation">
+            <div class="main">
+                <span class="r-wrap"><span class="r">3.30</span></span>
+                <span class="times">x</span>
+                <!-- <span class="sq-bracket">[</span> -->
+                <span class="x-input">0.50</span>
+                <span class="times">x</span>
+                <span class="c-bracket">(</span>
+                <span>1 - </span>
+                <span class="x-input">0.50</span>
+                <span class="c-bracket">)</span>
+                <!-- <span class="sq-bracket">]</span> -->
+                <span>=</span>
+                <span class="output-wrap">
+                    <span class="output">0.000</span>
+                </span>
+            </div>
+        </div>
     </div>
 </section>
 <section>
     <div class="content">
         For every "r" begin with an "x",<br/>
-        plot that sequence, and move on to the next…<br/>
+        plot that sequence, and move on to the next...<br/>
         The graph it makes is a pleasing sight.<br/>
         Self-similar patterns to stare at all night.
     </div>
 </section>
 
+<section class="chart-slide">
+    <div class="content">
+        <div id="chart"></div>
+        <div class="slider-wrap">
+            <span>slower</span><div class="slider"></div><span>faster</span>
+        </div>
+        <div class="equation moving-equation">
+            <div class="main">
+                <span class="r-wrap"><span class="r">0.000</span></span>
+                <span class="times">x</span>
+                <!-- <span class="sq-bracket">[</span> -->
+                <span class="x-input">0.000000</span>
+                <span class="times">x</span>
+                <span class="c-bracket">(</span>
+                <span>1 - </span>
+                <span class="x-input">0.000000</span>
+                <span class="c-bracket">)</span>
+                <!-- <span class="sq-bracket">]</span> -->
+                <span>=</span>
+                <span class="output-wrap">
+                    <span class="output">0.000</span>
+                </span>
+            </div>
+        </div>
 
-</div>
-<div id="chart"></div>
-<div class="equation moving-equation">
-    <div class="main">
-        <span class="r-wrap"><span class="r">0.000</span></span>
-        <span class="times">x</span>
-        <!-- <span class="sq-bracket">[</span> -->
-        <span class="x-input">0.000000</span>
-        <span class="times">x</span>
-        <span class="c-bracket">(</span>
-        <span>1 - </span>
-        <span class="x-input">0.000000</span>
-        <span class="c-bracket">)</span>
-        <!-- <span class="sq-bracket">]</span> -->
-        <span>=</span>
-        <span class="output-wrap">
-            <span class="output">0.000</span>
-        </span>
     </div>
+</section>
+
 </div>

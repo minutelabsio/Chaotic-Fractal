@@ -16,7 +16,7 @@ define([
 
             var self = this;
 
-            this.$el = $(options.el);
+            this.$el = $(options.el).first();
             this.$main = this.$el.find('.main');
 
             this.$r = this.$el.find('.r');
@@ -26,14 +26,27 @@ define([
             this.setX(options.x || 0.5);
             this.setR(options.r || 3.5);
 
+            this.doAnimation = (options.animate === undefined) || !!options.animate;
+
             this.$inLeft = this.box( this.$xsPlace.eq(0), this.x );
             this.$inRight = this.box( this.$xsPlace.eq(1), this.x );
             this.$outBox = this.box( this.$outPlace, this.calc() );
             this.$outBox.css('width', 'auto');
 
-            setInterval(function(){
-                self.next();
-            }, 4000);
+            this.on('set:x', function( e, x ){
+                clearTimeout(self._to);
+                self.setBoxVal( self.$inLeft, self.x );
+                self.setBoxVal( self.$inRight, self.x );
+                self.setBoxVal( self.$outBox, self.calc() );
+            });
+
+            this.on('set:r', function(){
+                clearTimeout(self._to);
+            });
+
+            // setInterval(function(){
+            //     self.next();
+            // }, 4000);
         }
 
         ,setX: function( x ){
@@ -65,17 +78,39 @@ define([
             return pos;
         }
 
+        ,setBoxVal: function( $box, text ){
+
+            var isLong;
+
+            if ( text === 'Infinity' ){
+                text = '&infin;';
+                isLong = false;
+            } else if ( text === '-Infinity' ){
+                text = '-&infin;';
+                isLong = false;
+            } else {
+                if ( Math.abs(+text) > 100 ){
+
+                    text = (+text).toPrecision( 1 );
+                } else if ( Math.abs(+text) < 0.0001 ){
+
+                    text = '0';
+                }
+
+                isLong = ((''+text).length > 5);
+            }
+
+            $box.html( text ).show().toggleClass('long', isLong);
+            return $box;
+        }
+
         ,box: function( $place, text ){
 
             var $box = $('<span>')
                 ,pos = this.getPos( $place )
                 ;
 
-            text += '';
-
-            return $box.addClass('box')
-                .text( text )
-                .toggleClass('long', text.length > 5)
+            return this.setBoxVal( $box.addClass('box'), text )
                 .css({
                     position: 'absolute'
                     ,top: 0
@@ -114,7 +149,18 @@ define([
 
             var self = this
                 ,w = self.$xsPlace.width() + 'px'
+                ,anim = self.doAnimation
+                ,val
                 ;
+
+            if ( !anim ){
+                this.x = parseFloat(this.$outBox.text());
+                val = this.calc();
+                self.setBoxVal( this.$inLeft.add(this.$inRight), this.x );
+                self.setBoxVal( this.$outBox, val );
+                self.emit('next', val);
+                return;
+            }
 
             this.dropOut( this.$inLeft.add(this.$inRight) );
 
@@ -132,12 +178,12 @@ define([
                 self.$inRight.css('transform', self.getPos(self.$xsPlace.eq(1)).str).css('width', w);
             }, 50);
 
-            this.x = this.calc();
+            this.x = parseFloat(this.$outBox.text());
+            val = self.calc();
+            this.$outBox = this.box( self.$outPlace, val ).hide();
 
-            setTimeout(function(){
-                var val = self.calc();
-                self.$outBox = self.box( self.$outPlace, val );
-                self.$outBox.css('width', 'auto');
+            this._to = setTimeout(function(){
+                self.$outBox.show().css('width', 'auto');
                 self.emit('next', val);
             }, 1000);
         }

@@ -1,8 +1,88 @@
 define(function(){
     'use strict';
 
+    var now = window.performance && window.performance.now ?
+        function(){ return window.performance.now(); } :
+        Date.now && Date.now.bind(Date) || function(){ return (new Date()).getTime(); };
+
+    var frameCallbacks = [];
+    var lastTime = now();
+    function frame(){
+
+        window.requestAnimationFrame( frame );
+
+        var fn;
+        var time = now();
+        var dt = time - lastTime;
+        for ( var i = 0, l = frameCallbacks.length; i < l; i++ ){
+
+            fn = frameCallbacks[ i ];
+            if ( fn.remove ){
+                frameCallbacks.splice( i, 1 );
+                fn = null;
+                i--;
+                l--;
+            }
+            if ( fn ){
+                fn( dt );
+            }
+        }
+        lastTime = time;
+    }
+
+    frame();
+
     return {
-        lerp: function(a, b, p) {
+
+        Interval: function( duration, fn, scope ){
+
+            var cumulTime = 0
+                ,paused = false
+                ,interval = {
+                    fn: fn
+                    ,scope: scope
+                }
+                ;
+
+            function check( dt ){
+
+                if ( paused ){
+                    return;
+                }
+
+                cumulTime += dt;
+
+                if ( cumulTime > interval.duration ){
+                    cumulTime = 0;
+                    interval.fn.call( interval.scope || window );
+                }
+            }
+
+            interval.duration = duration;
+            interval.refresh = function(){
+                cumulTime = 0;
+                return interval;
+            };
+            interval.pause = function( val ){
+                paused = (val === undefined) || !!val;
+                return interval;
+            };
+            interval.resume = function(){
+                paused = false;
+                return interval;
+            };
+            interval.destroy = function(){
+                check.remove = true;
+                paused = true;
+                interval.resume = interval.pause = null;
+            };
+
+            frameCallbacks.push( check );
+
+            return interval;
+        }
+
+        ,lerp: function(a, b, p) {
             return (b-a)*p + a;
         }
 
