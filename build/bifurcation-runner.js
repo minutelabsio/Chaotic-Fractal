@@ -97,7 +97,7 @@ function bifurcation( data ){
         ,yaxis = Scale(data.x, [ 0, height ])
         ,r = data.r[0]
         ,max = data.r[1]
-        ,precision = (max - r) / data.iterations
+        ,precision = (max - r) / data.steps
         ;
 
     while ( r <= max ){
@@ -127,12 +127,28 @@ function invertAlpha( data ){
     }
 }
 
+function removeAlpha( data ){
+    var l = data.length;
+    var i = 0;
+    var o, b;
+    for ( i; i < l; i += 4 ){
+        o = data[ i + 3 ] / 255;
+        b = 255 * (1 - o);
+        data[ i ] = o * data[ i ] + b;
+        data[ i + 1 ] = o * data[ i + 1 ] + b;
+        data[ i + 2 ] = o * data[ i + 2 ] + b;
+        data[ i + 3 ] = 255;
+    }
+}
+
+
 var fs  = require('fs');
 var sys = require('sys');
 var Png = require('png').Png;
+var Jpeg = require('jpeg').Jpeg;
 var Buffer = require('buffer').Buffer;
 
-module.exports = function( path, w, h, bounds ){
+module.exports = function( path, w, h, bounds, color ){
 
     bounds = bounds || {};
     var rmin = bounds.rmin || 3;
@@ -149,9 +165,9 @@ module.exports = function( path, w, h, bounds ){
         keep: h,
         r: [ rmin, rmax ],
         x: [ xmin, xmax ],
-        iterations: 2 * ((h/720) | 0) * 10000,
+        steps: 4 * w,
 
-        color: {
+        color: color || {
             r: 10,
             g: 10,
             b: 10,
@@ -160,9 +176,10 @@ module.exports = function( path, w, h, bounds ){
     };
 
     var ret = bifurcation( opts );
-    invertAlpha( ret.img.data );
-    var png = new Png(new Buffer(ret.img.data), w, h, 'rgba');
-    var pngImage = png.encodeSync();
+    // invertAlpha( ret.img.data );
+    removeAlpha( ret.img.data );
+    var jpeg = new Jpeg(new Buffer(ret.img.data), w, h, 'rgba');
+    var jpegImg = jpeg.encodeSync();
 
-    fs.writeFileSync(path + 'bifurcation.png', pngImage.toString('binary'), 'binary');
+    fs.writeFileSync(path + 'bifurcation.jpg', jpegImg.toString('binary'), 'binary');
 };

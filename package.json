@@ -20,7 +20,8 @@
         "grunt-img": "*",
         "grunt-contrib-requirejs": "*",
         "grunt-contrib-compass": "*",
-        "png": "*"
+        "png": "*",
+        "jpeg": "*"
     },
     "bundledDependencies": [],
     "license": "MIT"
