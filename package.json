@@ -19,7 +19,8 @@
         "grunt-contrib-jshint": "*",
         "grunt-img": "*",
         "grunt-contrib-requirejs": "*",
-        "grunt-contrib-compass": "*"
+        "grunt-contrib-compass": "*",
+        "png": "*"
     },
     "bundledDependencies": [],
     "license": "MIT"

@@ -101,6 +101,14 @@ body.loading {
         float: left;
     }
 
+    .xaxis text {
+        fill: $red-dark;
+    }
+
+    .yaxis text {
+        fill: $deep-blue-dark;
+    }
+
     .xaxis line,
     .yaxis line {
       stroke: $deep-grey-dark;
@@ -144,7 +152,6 @@ body.loading {
     }
 
     .box {
-        color: $deep-blue-dark;
         max-width: 10ex;
     }
 
@@ -187,6 +194,7 @@ body.loading {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: $red-dark;
     }
 
     .output {
@@ -206,6 +214,14 @@ body.loading {
 
     .times {
         font-size: 0.75em;
+    }
+
+    .out {
+        color: $deep-blue-dark;
+    }
+
+    .in {
+        color: $deep-grey;
     }
 }
 

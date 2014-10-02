@@ -13,10 +13,10 @@ module.exports = function(grunt) {
     pkg = grunt.file.readJSON('package.json');
 
     config = {
-        
+
         sourceDir: 'library',
         compressedDir: 'library-build',
-        utils: '', // Any utils can go here 
+        utils: '', // Any utils can go here
 
         pkg : pkg
     };
@@ -79,6 +79,20 @@ module.exports = function(grunt) {
             app: {
                 options: require('./build/require-build')
             }
+        },
+
+        bifurcation: {
+            dist: {
+                output: '<%= config.sourceDir %>/images/bifurcation/',
+                bounds: {
+                    rmin: -2,
+                    rmax: 4,
+                    xmin: -0.5,
+                    xmax: 1.5
+                },
+                width: 960,
+                height: 720
+            }
         }
     });
 
@@ -89,7 +103,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-img');
     grunt.loadNpmTasks('grunt-contrib-requirejs');
     grunt.loadNpmTasks('grunt-contrib-compass');
-    
+
     // Tasks
     grunt.registerTask('compress-only', ['compass', 'requirejs:app']);
     grunt.registerTask('server', ['bgShell:httpserver']);
@@ -98,7 +112,16 @@ module.exports = function(grunt) {
     grunt.registerTask('cleanup', ['clean', 'bgShell:cleanCompass']);
     grunt.registerTask('dev', [ 'bgShell:watchCompass', 'bgShell:httpserver' ]);
     grunt.registerTask('build', ['cleanup', 'jshint:source', 'compress-only', 'img:app']);
-    
+
+    grunt.registerMultiTask('bifurcation', 'Create bifurcation diagrams', function(){
+        var target = this.target;
+        var data = this.data;
+        var dir = data.output;
+        var runner = require('./build/bifurcation-runner');
+        grunt.file.mkdir( dir );
+        runner( dir, data.width, data.height, data.bounds );
+    });
+
     // Default task(s).
     grunt.registerTask('default', ['build']);
 

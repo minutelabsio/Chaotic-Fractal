@@ -264,7 +264,8 @@ define([
             }
 
             function changeR( e ){
-                var vals = self.getPlotValues(e.center.x - self.axisThickness, e.center.y - self.axisThickness + 20);
+                var top = self.$chart.offset().top - $(document).scrollTop();
+                var vals = self.getPlotValues(e.center.x - self.axisThickness, e.center.y - top);
                 // if ( vals[0] > 0 ){
                 //     vals[1] = Math.min(Math.max(vals[1], 0), 1);
                 // }
@@ -580,6 +581,8 @@ define([
 
             var self = this;
             var vals = { x: 0.5, r: 3.3 };
+
+            this.$chart = $('#chart');
 
             self.initAxes();
             $('#chart .xaxis').before( this.renderer.view );

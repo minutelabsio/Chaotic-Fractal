@@ -28,9 +28,9 @@ define([
 
             this.doAnimation = (options.animate === undefined) || !!options.animate;
 
-            this.$inLeft = this.box( this.$xsPlace.eq(0), this.x );
-            this.$inRight = this.box( this.$xsPlace.eq(1), this.x );
-            this.$outBox = this.box( this.$outPlace, this.calc() );
+            this.$inLeft = this.box( this.$xsPlace.eq(0), this.x ).addClass('in');
+            this.$inRight = this.box( this.$xsPlace.eq(1), this.x ).addClass('in');
+            this.$outBox = this.box( this.$outPlace, this.calc() ).addClass('out');
             this.$outBox.css('width', 'auto');
 
             this.on('set:x', function( e, x ){
@@ -82,10 +82,10 @@ define([
 
             var isLong;
 
-            if ( text === 'Infinity' ){
+            if ( (''+text) === 'Infinity' ){
                 text = '&infin;';
                 isLong = false;
-            } else if ( text === '-Infinity' ){
+            } else if ( (''+text) === '-Infinity' ){
                 text = '-&infin;';
                 isLong = false;
             } else {
@@ -165,12 +165,13 @@ define([
             this.dropOut( this.$inLeft.add(this.$inRight) );
 
             this.$inLeft = this.$outBox;
-            this.$inRight = this.box( this.$outPlace, this.$inLeft.text() );
-            this.$inRight.css('width', 'auto');
+            this.$inRight = this.$outBox.clone().appendTo( this.$main );
 
             this.$inLeft.add(this.$inRight)
                 .css('width', this.$inLeft.width() + 'px')
                 .css('transition', 'all 1s ease-in-out')
+                .addClass('in')
+                .removeClass('out')
                 ;
 
             setTimeout(function(){
@@ -180,7 +181,7 @@ define([
 
             this.x = parseFloat(this.$outBox.text());
             val = self.calc();
-            this.$outBox = this.box( self.$outPlace, val ).hide();
+            this.$outBox = this.box( self.$outPlace, val ).hide().addClass('out');
 
             this._to = setTimeout(function(){
                 self.$outBox.show().css('width', 'auto');
