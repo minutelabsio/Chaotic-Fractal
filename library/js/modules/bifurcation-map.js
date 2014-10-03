@@ -25,6 +25,24 @@ define([
 ) {
     'use strict';
 
+    var tileDims = {
+        x: 1600
+        ,y: 900
+    };
+
+    var emptyTileTexture = (function(){
+        var g = new PIXI.Graphics();
+        g.beginFill( 0x888888 );
+        g.lineStyle( 2, 0x888888 );
+        g.drawRect( 0, 0, tileDims.x-4, tileDims.y-4 );
+        g.endFill();
+        g.boundsPadding = 0;
+        var t = g.generateTexture();
+        t.width = tileDims.x;
+        t.height = tileDims.y;
+        return t;
+    })();
+
     // Page-level Module
     var Module = M({
 
@@ -39,27 +57,23 @@ define([
             this.rmax = 4;
             this.xmin = -0.5;
             this.xmax = 1.5;
-            this.zoom = 1;
-            this.resolution = 2;
             this.friction = 0.1;
             this.position = new PIXI.Point();
             this.scale = new PIXI.Point(1,1);
             this.velocity = {x: 0, y: 0};
+            this.maxLayers = 5;
             this.minScale = {x: 0.25, y: 0.25};
-            this.maxScale = {x: 8, y: 8};
+            this.maxScale = {x: Math.pow(2, this.maxLayers), y: Math.pow(2, this.maxLayers)};
             this.unscale = [];
-            this.diagrams = [];
+            this.layers = [];
             this.markers = [];
-            this.diagramsComplete = 1;
-            this.axisThickness = 60;
-
-            this.tmpCanvas = document.createElement('canvas');
-            this.tmpCtx = this.tmpCanvas.getContext( '2d' );
+            this.loadedTiles = {};
+            this.axisThickness = 80;
 
             this.resize();
 
-            this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
-            this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin - 1), -this.height]);
+            this.xaxis = Scale([this.rmin, this.rmax], [ 0, tileDims.x ]);
+            this.yaxis = Scale([this.xmin, this.xmax], [ tileDims.y, 0 ]);
 
             if ( window.Modernizr.touch ){
                 this.renderer = new PIXI.CanvasRenderer(this.width, this.height, null, true);
@@ -83,43 +97,13 @@ define([
             this.panContainer.addChild( this.rLine );
             this.unscale.push(this.rLine);
 
-            // worker
-            this.worker = new Worker( require.toUrl('workers/bifurcation.js') );
-            this.worker.onmessage = function(e) {
-                if ( typeof e.data === 'string' ){
-                    console.log(e.data);
-                    return;
-                }
-
-                // console.timeEnd('Create');
-
-                self.tmpCanvas.width = e.data.img.width;
-                self.tmpCanvas.height = e.data.img.height;
-
-                self.tmpCtx.putImageData(e.data.img, 0, 0);
-
-                self.emit('generated', { canvas: self.tmpCanvas, ctx: self.tmpCtx, inputData: e.data.inputData });
-            };
-
             self.initEvents();
-            self.initDiagram().then(function(){
-                self.resolve('fully-loaded');
-                self.resolution = 4;
-                self.initDiagram().then(function(){
-                    self.resolution = 8;
-                    self.diagramsComplete++;
-                    self.zoomBy(0, 0);
-                    // self.initDiagram().then(function(){
-                    //     self.diagramsComplete++;
-                    //     self.zoomBy(0, 0);
-                    // });
-                });
-            });
-            self.diagrams[0].visible = true;
-
+            self.initMap();
             self.initAxes();
             self.$chart.find('.xaxis').before( this.renderer.view );
+
             this.emit('resize');
+            self.positionDiagram();
         }
 
         ,initAxes: function(){
@@ -270,20 +254,28 @@ define([
                 self.zoomBy( z, z );
             });
 
-            this.after('init-diagram').then(function(){
-                self.positionDiagram();
-                self.on('frame', function( e, dt ){
-                    var x = self.velocity.x *= 1-self.friction;
-                    var y = self.velocity.y *= 1-self.friction;
-                    if ( (x*x + y*y) > 0.01 ){
-                        self.panTo( self.position.x + self.velocity.x * dt, self.position.y + self.velocity.y * dt );
-                    }
-                });
-            });
-
             this.on('pan', function(){
                 self.drawAxes();
+                self.rLine.y = self.yaxis( self.imgView.y[0] );
             });
+
+            this.on('scale', function(){
+                self.showTileLayer( self.getZoom() );
+            });
+
+            self.on('frame', function( e, dt ){
+                var x = self.velocity.x *= 1-self.friction;
+                var y = self.velocity.y *= 1-self.friction;
+                if ( (x*x + y*y) > 0.01 ){
+                    self.panTo( self.position.x + self.velocity.x * dt, self.position.y + self.velocity.y * dt );
+                }
+            });
+
+            self.on('pan', helpers.debounce(function(){
+                if ( self.positioned ){
+                    self.checkTileState();
+                }
+            }, 100));
         }
 
         ,flickBy: function( vx, vy ){
@@ -305,7 +297,8 @@ define([
             self.position.y = y;
             self.panContainer.x = -x-self.zoomContainer.x;
             self.panContainer.y = -y-self.zoomContainer.y;
-            if ( self.positioned ){
+
+            if ( this.positioned ){
                 self.imgView.x[0] = self.xaxis.invert(x - hw / self.scale.x + hw);
                 self.imgView.x[1] = self.xaxis.invert(x + hw / self.scale.x + hw);
                 self.imgView.y[0] = self.yaxis.invert(y - hh / self.scale.y + hh);
@@ -416,16 +409,7 @@ define([
             var i, l;
             sx = Math.min(this.maxScale.x, Math.max(this.minScale.x, sx));
             sy = Math.min(this.maxScale.y, Math.max(this.minScale.y, sy));
-            idx = Math.min(this.diagramsComplete-1, Math.round( Math.log(Math.max(1, Math.ceil(sx-1))) / Math.log(2) ));
-            // console.log(sx, idx)
-            if ( idx !== this.idx ){
-                this.idx = idx;
-                for ( var i = 0, l = this.diagrams.length; i < l; i++ ){
-                    this.diagrams[i].visible = false;
-                }
 
-                this.diagrams[ idx ].visible = true;
-            }
             this.scale.x = container.scale.x = sx;
             this.scale.y = container.scale.y = sy;
 
@@ -439,33 +423,8 @@ define([
                 this.markers[ i ].scale.y = 1/sy;
             }
 
+            this.emit('scale');
             this.panTo( this.position.x, this.position.y );
-        }
-
-        ,generate: function( w, h, rmin, rmax, xmin, xmax, res ){
-
-            var self = this;
-            var worker = this.worker;
-            var canvas = this.tmpCanvas;
-            var ctx = this.tmpCtx;
-            var img = ctx.createImageData( res * w, res * h );
-
-            worker.postMessage({
-                method: 'bifurcation',
-                img: img,
-                skip: 0,
-                keep: h * res,
-                r: [ rmin, rmax ],
-                x: [ xmin, xmax ],
-                iterations: res * 10000,
-
-                color: {
-                    r: 10,
-                    g: 10,
-                    b: 10,
-                    alpha: 2
-                }
-            });
         }
 
         ,positionDiagram: function(){
@@ -481,84 +440,118 @@ define([
             var w = this.width;
             var h = this.height;
 
-            self.positioned = true;
+            var s = w/(xaxis(v.x[1]) - xaxis(v.x[0]));
+            this.positioned = true;
+            this.panTo(xaxis(v.x[0]) + 0.5 * w / s - 0.5 * w, yaxis(v.y[0]) + 0.5 * h / s - 0.5 * h);
+            this.scaleTo(s, s);
 
-            container.scale.x = w / (xaxis(v.x[1]) - xaxis(v.x[0]));
-            container.scale.y = h / (yaxis(v.y[1]) - yaxis(v.y[0]));
-            this.panTo((xaxis(v.x[0])) * container.scale.x, (yaxis(v.y[0])) * container.scale.y);
         }
 
-        ,initDiagram: function(){
+        ,getZoom: function( scale ){
+            scale = scale || this.scale.x;
+            return Math.min( this.maxLayers - 1, Math.max( 0, Math.ceil( Math.log( scale ) / Math.LN2 ) ) );
+        }
 
-            var self = this
-                ,stage = this.stage
-                ,w = this.width
-                ,h = this.height
-                ,rmin = this.rmin
-                ,rmax = this.rmax
-                ,rinc = 1/this.resolution
-                ,xmin = this.xmin
-                ,xmax = this.xmax
-                ,xinc = xmax - xmin
-                ,xaxis = this.xaxis
-                ,yaxis = this.yaxis
-                ,container = new PIXI.DisplayObjectContainer()
-                ,jobs = []
-                ;
+        ,showTileLayer: function( zoom ){
 
-            container.visible = false;
-            this.diagrams.push(container);
-            this.bifurcationContainer.addChild( container );
-
-            // loop over tiles
-            for ( var r = rmax; r > rmin; r-=rinc ){
-                // for ( var x = xmax; x > xmin; x-- ){
-                    // define a scope for vars
-                    (function(r, x, res){
-                        // push a job function into the jobs array
-                        jobs.push(function(){
-
-                            var dfd = when.defer();
-
-                            self.on('generated', function( e, data ){
-
-                                var input = data.inputData;
-                                var x = xaxis( input.r[0] );
-                                var y = yaxis( input.x[0] );
-                                self.off(e.topic, e.handler);
-
-                                setTimeout(function(){
-                                    var bifSprite = PIXI.Sprite.fromImage( data.canvas.toDataURL('image/png') );
-                                    container.addChild( bifSprite );
-                                    bifSprite.width = w * rinc;
-                                    bifSprite.height = h * xinc;
-                                    // console.log(x,y, input.r, input.x)
-                                    bifSprite.x = x;
-                                    bifSprite.y = y;
-                                    bifSprite.scale.y *= -1;
-                                    dfd.resolve( bifSprite );
-                                }, 10);
-                            });
-
-                            self.generate(
-                                w,
-                                h,
-                                r-rinc,
-                                r,
-                                x-xinc,
-                                x,
-                                res
-                            );
-
-                            return dfd.promise;
-                        });
-                    })(r, xmax, this.resolution);
-                //}
+            var layer;
+            for ( var i = 0, l = this.maxLayers; i < l; i++ ){
+                layer = this.layers[ i ];
+                if ( layer ){
+                    layer.visible = false;
+                }
             }
 
-            self.resolve('init-diagram');
-            // run jobs in sequence
-            return sequence( jobs );
+            this.layers[ zoom ].visible = true;
+        }
+
+        ,checkTileState: function(){
+            var self = this
+                ,zoom = this.getZoom()
+                ,edge = Math.pow(2, zoom)
+                ,w = tileDims.x / edge
+                ,h = tileDims.y / edge
+                ,hw = this.width * 0.5
+                ,hh = this.height * 0.5
+                ,xmin = this.position.x - hw / self.scale.x + hw
+                ,ymin = this.position.y - hh / self.scale.x + hh
+                ,xmax = this.position.x + hw / self.scale.x + hw
+                ,ymax = this.position.y + hh / self.scale.x + hh
+                ;
+
+            for ( var i = Math.max(0, Math.floor(xmin / w)), il = Math.ceil(xmax / w); i < il && i < edge; i++ ){
+                for ( var j = Math.max(0, Math.floor(ymin / h)), jl = Math.ceil(ymax / h); j < jl && j < edge; j++ ){
+                    this.loadTile( zoom, i, j );
+                }
+            }
+
+        }
+
+        ,getTileLayer: function( zoom ){
+
+            var layer = this.layers[ zoom ]
+                ,edge = Math.pow(2, zoom)
+                ;
+
+            if ( !layer ){
+                layer = this.layers[ zoom ] = new PIXI.DisplayObjectContainer();
+                layer.scale.x = 1 / edge;
+                layer.scale.y = 1 / edge;
+                layer.visible = false;
+                this.bifurcationContainer.addChildAt( layer, zoom );
+            }
+
+            return layer;
+        }
+
+        ,loadTile: function( zoom, i, j ){
+
+            if ( this.loadedTiles[ ''+zoom+i+j ] ){
+                return;
+            }
+
+            var self = this
+                ,layer = this.getTileLayer( zoom )
+                ,src = require.toUrl( '../../images/bifurcation/' + zoom + 'x-' + i + '-' + j + '.jpg' )
+                ,tile = layer.getChildAt( this.getTileIndex( zoom, i, j ) )
+                ;
+
+            if ( tile ){
+                tile.setTexture( PIXI.Texture.fromImage( src ) );
+                this.loadedTiles[ ''+zoom+i+j ] = true;
+            }
+        }
+
+        ,getTileIndex: function( zoom, i, j ){
+            return i * (Math.pow(2, zoom)) + j;
+        }
+
+        ,initMap: function(){
+
+            var self = this
+                ,nLayers = this.maxLayers
+                ,z
+                ,edge
+                ,layer
+                ,tile
+                ;
+
+            for ( z = 0; z < nLayers; z++ ){
+                layer = this.getTileLayer( z );
+                edge = Math.pow(2, z);
+
+                for ( var i = 0; i < edge; i++ ){
+                    for ( var j = 0; j < edge; j++ ){
+                        tile = new PIXI.Sprite( emptyTileTexture );
+                        tile.width = tileDims.x;
+                        tile.height = tileDims.y;
+                        tile.x = tileDims.x * i;
+                        tile.y = tileDims.y * j;
+                        layer.addChildAt( tile, this.getTileIndex( z, i, j ) );
+                        // this.loadTile( z, i, j );
+                    }
+                }
+            }
         }
 
     }, ['events']);

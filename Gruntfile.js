@@ -85,16 +85,16 @@ module.exports = function(grunt) {
             dist: {
                 dir: '<%= config.sourceDir %>/images/bifurcation/',
                 // file: 'test.jpg',
-                grid: 4,
+                grid: 5,
                 bounds: {
                     // rmin: -2,
                     // rmax: 4,
                     // xmin: -0.5,
                     // xmax: 1.5,
-                    rmin: 3.3,
+                    rmin: -2,
                     rmax: 4,
-                    xmin: 1,
-                    xmax: 0
+                    xmin: 1.5,
+                    xmax: -0.5
                 },
                 color: {
                     r: 10,

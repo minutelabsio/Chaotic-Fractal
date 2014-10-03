@@ -5,7 +5,7 @@ define([
     'util/helpers',
     'modules/logical-map-equation',
     'modules/slide-manager',
-    'modules/bifurcation-chart'
+    'modules/bifurcation-map'
 ], function(
     $,
     _jqnoui,
@@ -57,7 +57,7 @@ define([
 
             self.chart.setR(this.equation.r);
 
-            this.on('change:r', function( e, r ){
+            this.chart.on('change:r', function( e, r ){
                 self.equation.setR( r );
             });
 
