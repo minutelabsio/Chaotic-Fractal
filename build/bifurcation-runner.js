@@ -148,38 +148,91 @@ var Png = require('png').Png;
 var Jpeg = require('jpeg').Jpeg;
 var Buffer = require('buffer').Buffer;
 
-module.exports = function( path, w, h, bounds, color ){
+function makeTile( w, h, rmin, rmax, xmin, xmax, color, steps ){
+    w = w|0;
+    h = h|0;
 
-    bounds = bounds || {};
+    var opts = {
+            img: {
+                width: w
+                ,height: h
+                ,data: new Uint8ClampedArray( w * h * 4 )
+            },
+            skip: 0,
+            keep: h,
+            r: [ rmin, rmax ],
+            x: [ xmin, xmax ],
+            steps: steps || (4 * w),
+
+            color: color || {
+                r: 10,
+                g: 10,
+                b: 10,
+                alpha: 2
+            }
+        }
+        ,ret = bifurcation( opts )
+        ;
+
+    removeAlpha( ret.img.data );
+    return ret.img.data;
+}
+
+function saveImage( file, width, height, data ){
+
+    var jpeg = new Jpeg(new Buffer(data), width, height, 'rgba');
+    var jpegImg = jpeg.encodeSync();
+
+    fs.writeFileSync(file, jpegImg.toString('binary'), 'binary');
+}
+
+function makeGrid( zoom, opts ){
+
+    var edge = Math.pow( 2, zoom );
+    var rScale = Scale([0, edge], [opts.rmin, opts.rmax]);
+    var xScale = Scale([0, edge], [opts.xmin, opts.xmax]);
+    var file, data;
+
+    for ( var i = 0; i < edge; i++ ){
+
+        data = makeTile( opts.width, opts.height * edge, rScale( i ), rScale( i + 1 ), xScale( 0 ), xScale( edge ), opts.color, 4 * opts.width );
+
+        for ( var j = 0; j < edge; j++ ){
+
+            file = opts.dir + zoom + 'x-' + i + '-' + j + '.jpg';
+            console.log('    ' + file);
+            saveImage( file, opts.width, opts.height, data.subarray( opts.width * opts.height * 4 * j, opts.width * opts.height * 4 * (j + 1) ) );
+        }
+    }
+}
+
+module.exports = function( options ){
+
+    var bounds = options.bounds || {};
     var rmin = bounds.rmin || 3;
     var rmax = bounds.rmax || 4;
     var xmin = bounds.xmin || 1;
     var xmax = bounds.xmax || 0;
-    var opts = {
-        img: {
-            width: w
-            ,height: h
-            ,data: new Uint8ClampedArray( w * h * 4 )
-        },
-        skip: 0,
-        keep: h,
-        r: [ rmin, rmax ],
-        x: [ xmin, xmax ],
-        steps: 4 * w,
+    var w = options.width;
+    var h = options.height;
+    var zoom = 0;
+    var maxZoom;
 
-        color: color || {
-            r: 10,
-            g: 10,
-            b: 10,
-            alpha: 2
+    if ( options.grid ){
+        maxZoom = Math.abs(options.grid) | 0;
+        options.rmin = rmin;
+        options.rmax = rmax;
+        options.xmin = xmin;
+        options.xmax = xmax;
+
+        while ( zoom <= maxZoom ){
+
+            console.log( 'Making zoom level: ' + zoom );
+            makeGrid( zoom, options );
+            zoom++;
         }
-    };
 
-    var ret = bifurcation( opts );
-    // invertAlpha( ret.img.data );
-    removeAlpha( ret.img.data );
-    var jpeg = new Jpeg(new Buffer(ret.img.data), w, h, 'rgba');
-    var jpegImg = jpeg.encodeSync();
-
-    fs.writeFileSync(path + 'bifurcation.jpg', jpegImg.toString('binary'), 'binary');
+    } else if ( options.file ){
+        saveImage( options.dir + options.file, w, h, makeTile( w, h, rmin, rmax, xmin, xmax, options.color ) );
+    }
 };

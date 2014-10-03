@@ -83,7 +83,9 @@ module.exports = function(grunt) {
 
         bifurcation: {
             dist: {
-                output: '<%= config.sourceDir %>/images/bifurcation/',
+                dir: '<%= config.sourceDir %>/images/bifurcation/',
+                // file: 'test.jpg',
+                grid: 4,
                 bounds: {
                     // rmin: -2,
                     // rmax: 4,
@@ -101,8 +103,7 @@ module.exports = function(grunt) {
                     alpha: 16
                 },
                 width: 1600,
-                height: 900,
-                scale: 8
+                height: 900
             }
         }
     });
@@ -127,11 +128,9 @@ module.exports = function(grunt) {
     grunt.registerMultiTask('bifurcation', 'Create bifurcation diagrams', function(){
         var target = this.target;
         var data = this.data;
-        var scale = data.scale || 1;
-        var dir = data.output;
         var runner = require('./build/bifurcation-runner');
-        grunt.file.mkdir( dir );
-        runner( dir, data.width * scale, data.height * scale, data.bounds, data.color );
+        grunt.file.mkdir( data.dir );
+        runner( data );
     });
 
     // Default task(s).
