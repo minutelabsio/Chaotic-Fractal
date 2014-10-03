@@ -34,7 +34,9 @@ define(function(){
 
     return {
 
-        Interval: function( duration, fn, scope ){
+        now: now
+
+        ,Interval: function( duration, fn, scope ){
 
             var cumulTime = 0
                 ,paused = false

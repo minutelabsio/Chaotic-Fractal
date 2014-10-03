@@ -1,6 +1,5 @@
 define([
     'jquery',
-    'jquery.nouislider',
     'moddef',
     'require',
     'tween',
@@ -9,13 +8,10 @@ define([
     'd3',
     'pixi',
     'util/scale',
-    'modules/logical-map-equation',
-    'modules/slide-manager',
     'when',
     'when/sequence'
 ], function(
     $,
-    _jqnoui,
     M,
     require,
     TWEEN,
@@ -24,25 +20,20 @@ define([
     d3,
     PIXI,
     Scale,
-    Equation,
-    SlideManager,
     when,
     sequence
 ) {
     'use strict';
 
-    var now = window.performance && window.performance.now ?
-		function(){ return window.performance.now(); } :
-		Date.now && Date.now.bind(Date) || function(){ return (new Date()).getTime(); };
+    // Page-level Module
+    var Module = M({
 
-    // Page-level Mediator
-    var Mediator = M({
-
-        // Mediator Constructor
+        // Module Constructor
         constructor: function(){
 
             var self = this;
 
+            this.$chart = $('<div>');
             this.imgView = { x: [3, 4], y: [1, 0] };
             this.rmin = -2;
             this.rmax = 4;
@@ -70,18 +61,13 @@ define([
             this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
             this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin -1), -this.height]);
 
-            // this.on('resize', function(){
-            //     this.xaxis = Scale([this.rmin, this.rmax], [ 0, this.width * (this.rmax - this.rmin) ]);
-            //     this.yaxis = Scale([this.xmin, this.xmax], [ this.height * (this.xmax - this.xmin -1), -this.height]);
-            // }, this);
-
             if ( window.Modernizr.touch ){
-				this.renderer = new PIXI.CanvasRenderer(this.width, this.height, null, true);
-			} else {
-				this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
-			}
-			this.stage = new PIXI.Stage(0x000000);
-			this.stage.setInteractive(true);
+                this.renderer = new PIXI.CanvasRenderer(this.width, this.height, null, true);
+            } else {
+                this.renderer = PIXI.autoDetectRenderer(this.width, this.height, null, true);
+            }
+            this.stage = new PIXI.Stage(0x000000);
+            this.stage.setInteractive(true);
 
             this.panContainer = new PIXI.DisplayObjectContainer();
             this.zoomContainer = new PIXI.DisplayObjectContainer();
@@ -131,11 +117,8 @@ define([
             });
             self.diagrams[0].visible = true;
 
-            $(function(){
-                self.onDomReady();
-                self.resolve('domready');
-            });
-
+            self.initAxes();
+            self.$chart.find('.xaxis').before( this.renderer.view );
             this.emit('resize');
         }
 
@@ -151,13 +134,13 @@ define([
             self.d3xScale = d3.scale.linear().range([0, this.width]);
             self.d3yScale = d3.scale.linear().range([0, this.height]);
 
-            y = d3.select( '#chart' ).append( 'svg' ).attr('class', 'yaxis')
+            y = d3.select( self.$chart[0] ).append( 'svg' ).attr('class', 'yaxis')
                 .style('margin-top', '-20px')
                 .attr('width', this.axisThickness)
                 .attr('height', self.height + self.axisThickness)
                 ;
 
-            x = d3.select( '#chart' ).append( 'svg' ).attr('class', 'xaxis')
+            x = d3.select( self.$chart[0] ).append( 'svg' ).attr('class', 'xaxis')
                 .style('margin-left', '-40px')
                 .attr('width', this.width + 40)
                 .attr('height', this.axisThickness)
@@ -204,18 +187,19 @@ define([
             this.height = this.width * 9/16;
 
             this.height = Math.min( this.height, window.innerHeight - this.axisThickness - 200 );
+            this.emit('resize');
         }
 
         // Initialize events
         ,initEvents: function(){
 
             var self = this
-                ,pt = now()
+                ,pt = helpers.now()
                 ;
 
             // setup animation frame
             function frame(){
-                var time = now();
+                var time = helpers.now();
                 self.emit('frame', time - pt);
                 pt = time;
                 window.requestAnimationFrame( frame );
@@ -233,7 +217,6 @@ define([
             $(window).on('resize', function(){
                 self.resize();
                 self.renderer.resize(self.width, self.height);
-                self.emit('resize');
             });
 
             this.on('resize', function(){
@@ -273,20 +256,18 @@ define([
                 self.emit( 'set:x', vals[1] );
             }
 
-            this.after('domready').then(function(){
-                var mc = new Hammer(document.getElementById('chart'));
-                mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
-                mc.on('panstart', grab)
-                    .on('panmove', move)
-                    .on('panend', release)
-                    .on('tap', changeR);
+            var mc = new Hammer( self.$chart[0] );
+            mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+            mc.on('panstart', grab)
+                .on('panmove', move)
+                .on('panend', release)
+                .on('tap', changeR);
 
-                $('#chart').on('mousewheel', function( e ){
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    var z = -e.originalEvent.deltaY / 1000;
-                    self.zoomBy( z, z );
-                });
+            self.$chart.on('mousewheel', function( e ){
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                var z = -e.originalEvent.deltaY / 1000;
+                self.zoomBy( z, z );
             });
 
             this.after('init-diagram').then(function(){
@@ -298,6 +279,10 @@ define([
                         self.panTo( self.position.x + self.velocity.x * dt, self.position.y + self.velocity.y * dt );
                     }
                 });
+            });
+
+            this.on('pan', function(){
+                self.drawAxes();
             });
         }
 
@@ -576,135 +561,7 @@ define([
             return sequence( jobs );
         }
 
-        // DomReady Callback
-        ,onDomReady: function(){
-
-            var self = this;
-            var vals = { x: 0.5, r: 3.3 };
-
-            this.$chart = $('#chart');
-
-            self.initAxes();
-            $('#chart .xaxis').before( this.renderer.view );
-
-            this.slides = SlideManager({
-                el: '#story'
-            });
-
-            this.equation = Equation({
-                el: '.chart-slide .moving-equation'
-                ,x: vals.x
-                ,r: vals.r
-                // ,animate: false
-            });
-
-            self.setR(this.equation.r);
-
-            this.on('change:r', function( e, r ){
-                self.equation.setR( r );
-            });
-
-            this.equation.on('next', function( e, val ){
-                var y = self.yaxis( val );
-                self.markerAt( self.rLine.x, y );
-            });
-
-            this.on('pan', function(){
-                self.drawAxes();
-            });
-
-            // sliders
-            var $slide1 = $('.slide1');
-            var $slide1XInputs = $slide1.find('.x-input');
-            var $slide2 = $('.slide2');
-            var $slide2XInputs = $slide2.find('.x-input');
-            var $slide2RInput = $slide2.find('.r');
-            var $chartSlide = $('.chart-slide');
-
-            $slide1.find('.eq-demo .slider').noUiSlider({
-                start: vals.x
-                ,connect: 'lower'
-                ,range: {
-                    min: 0.01
-                    ,max: 0.99
-                }
-            }).on('set slide', function(){
-                var val = $(this).val();
-                vals.x = val;
-                $slide1XInputs.html( val );
-                $slide2XInputs.html( val );
-            });
-
-            $slide2.find('.eq-demo .slider').noUiSlider({
-                start: vals.r
-                ,connect: 'lower'
-                ,range: {
-                    min: 3
-                    ,max: 3.99
-                }
-            }).on('set slide', function(){
-                var val = $(this).val();
-                vals.r = val;
-                $slide2RInput.html( val );
-            });
-
-            var eqn = Equation({
-                el: '.slide3 .moving-equation'
-                ,x: vals.x
-                ,r: vals.r
-            });
-
-            // equation animation tickers
-            var ticker1 = helpers.Interval( 4000, function(){
-                eqn.next();
-            });
-            ticker1.pause( this.slides.page !== 2 );
-
-            var ticker2 = helpers.Interval( 3000, function(){
-                self.equation.next();
-            });
-            ticker2.pause( this.slides.page !== 4 );
-
-            self.on('set:x', function( e, x ){
-                self.equation.$inLeft.hide();
-                self.equation.$inRight.hide();
-                self.equation.setBoxVal(self.equation.$outBox.show(), x);
-                self.equation.emit('next', x);
-                ticker2.refresh();
-            });
-
-            // turn on/off equations when slides change to correct page
-            this.slides.on('changing', function( e, pages ){
-                if ( pages.next === 2 || pages.next === 4 ){
-                    eqn.setR( vals.r );
-                    eqn.setX( vals.x );
-                    self.equation.setR( vals.r );
-                    self.equation.setX( vals.x );
-                    self.setR( vals.r );
-                }
-            }).on('page', function( e, page ){
-                ticker1.pause( page !== 2 );
-                ticker2.pause( page !== 4 );
-            });
-
-
-            $chartSlide.find('.slider').noUiSlider({
-                start: Math.exp(1)
-                ,connect: 'lower'
-                ,range: {
-                    min: 1
-                    ,max: Math.exp(4 - 0.06)
-                }
-            }).on('set slide', function(){
-                var val = 4000 - (Math.log($(this).val())*1000)|0;
-                self.equation.doAnimation = ( val > 1000 )
-                ticker2.duration = val;
-            });
-
-            $('body').removeClass('loading');
-        }
-
     }, ['events']);
 
-    return new Mediator();
+    return Module;
 });
