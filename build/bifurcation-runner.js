@@ -215,7 +215,7 @@ module.exports = function( options ){
     var xmax = bounds.xmax || 0;
     var w = options.width;
     var h = options.height;
-    var zoom = 0;
+    var zoom = options.startAt;
     var maxZoom;
 
     if ( options.grid ){

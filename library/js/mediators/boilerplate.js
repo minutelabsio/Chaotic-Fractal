@@ -3,6 +3,7 @@ define([
     'jquery.nouislider',
     'moddef',
     'util/helpers',
+    'hammerjs',
     'modules/logical-map-equation',
     'modules/slide-manager',
     'modules/bifurcation-map'
@@ -11,6 +12,7 @@ define([
     _jqnoui,
     M,
     helpers,
+    Hammer,
     Equation,
     SlideManager,
     BifurcationChart
@@ -46,6 +48,11 @@ define([
 
             this.slides = SlideManager({
                 el: '#story'
+            });
+
+            $(document).on('click touchstart', '#story .btn-continue', function(e){
+                e.preventDefault();
+                self.slides.goto('next');
             });
 
             this.equation = Equation({
@@ -108,7 +115,7 @@ define([
             });
 
             // equation animation tickers
-            var ticker1 = helpers.Interval( 4000, function(){
+            var ticker1 = helpers.Interval( 3000, function(){
                 eqn.next();
             });
             ticker1.pause( this.slides.page !== 2 );
@@ -155,6 +162,8 @@ define([
             });
 
             $('body').removeClass('loading');
+            $('html, body').scrollTop(0);
+            
         }
 
     }, ['events']);

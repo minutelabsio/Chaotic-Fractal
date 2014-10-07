@@ -32,8 +32,8 @@ define([
 
     var emptyTileTexture = (function(){
         var g = new PIXI.Graphics();
-        g.beginFill( 0x888888 );
-        g.lineStyle( 2, 0x888888 );
+        g.beginFill( 0xffffff );
+        g.lineStyle( 2, 0xffffff );
         g.drawRect( 0, 0, tileDims.x-4, tileDims.y-4 );
         g.endFill();
         g.boundsPadding = 0;
@@ -52,7 +52,7 @@ define([
             var self = this;
 
             this.$chart = $('<div>');
-            this.imgView = { x: [3, 4], y: [1, 0] };
+            this.imgView = { x: [1, 5], y: [1, 0] };
             this.rmin = -2;
             this.rmax = 4;
             this.xmin = -0.5;
@@ -61,7 +61,7 @@ define([
             this.position = new PIXI.Point();
             this.scale = new PIXI.Point(1,1);
             this.velocity = {x: 0, y: 0};
-            this.maxLayers = 5;
+            this.maxLayers = 6;
             this.minScale = {x: 0.25, y: 0.25};
             this.maxScale = {x: Math.pow(2, this.maxLayers), y: Math.pow(2, this.maxLayers)};
             this.unscale = [];
@@ -271,7 +271,7 @@ define([
                 }
             });
 
-            self.on('pan', helpers.debounce(function(){
+            self.on('pan', helpers.throttle(function(){
                 if ( self.positioned ){
                     self.checkTileState();
                 }

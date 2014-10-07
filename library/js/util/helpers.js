@@ -111,6 +111,33 @@ define(function(){
             };
         }
 
+        ,throttle: function( fn, delay, scope ){
+            var to
+                ,call = false
+                ,args
+                ,cb = function(){
+                    clearTimeout( to );
+                    if ( call ){
+                        call = false;
+                        to = setTimeout(cb, delay);
+                        fn.apply(scope, args);
+                    } else {
+                        to = false;
+                    }
+                }
+                ;
+
+            scope = scope || null;
+
+            return function(){
+                call = true;
+                args = arguments;
+                if ( !to ){
+                    cb();
+                }
+            };
+        }
+
         ,adjustAlpha: function( color, alpha ){
             color = color.split(/[\(,\)]/);
             color.pop();

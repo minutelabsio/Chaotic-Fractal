@@ -57,7 +57,7 @@ body.loading {
     overflow: hidden;
     &:before {
         content: '';
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         right: 0;
@@ -68,7 +68,7 @@ body.loading {
 
     &:after {
         content: 'loading...';
-        position: absolute;
+        position: fixed;
         z-index: 2;
         top: 62%;
         left: 50%;
@@ -80,6 +80,7 @@ body.loading {
 
 #story {
     section {
+        position: relative;
         width: 100%;
         @extend .hv-container;
         font-size: 1.5em;
@@ -89,6 +90,22 @@ body.loading {
             display: inline-block;
             vertical-align: middle;
             text-align: center;
+
+            .btn-continue {
+                position: absolute;
+                bottom: 0em;
+                right: 0em;
+                display: inline-block;
+                text-decoration: none;
+                background: $deep-grey-dark;
+                color: $grey-light;
+                padding: 1em 2em;
+                @include border-radius( 5px 0 0 );
+
+                &:active {
+                    background: $blue-dark;
+                }
+            }
         }
     }
 }
@@ -127,7 +144,8 @@ body.loading {
 
     canvas {
         float: left;
-        @include box-shadow(inset 0 0 5px rgba(0, 0, 0, 0.6));
+        cursor: move;
+        // @include box-shadow(inset 0 0 5px rgba(0, 0, 0, 0.6));
     }
 }
 
@@ -285,6 +303,12 @@ body.loading {
 
 .chart-slide {
     .equation {
+        font-size: 1.5em;
+    }
+}
+
+@media screen and (max-width: 800px) {
+    .slide3 .equation {
         font-size: 1.5em;
     }
 }
