@@ -51,7 +51,7 @@ define([
             });
 
             $(document).on('click touchstart', '#story .btn-continue', function(e){
-                e.preventDefault();
+                // e.preventDefault();
                 self.slides.goto('next');
             });
 
@@ -163,7 +163,7 @@ define([
 
             $('body').removeClass('loading');
             $('html, body').scrollTop(0);
-            
+
         }
 
     }, ['events']);

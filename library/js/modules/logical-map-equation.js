@@ -169,12 +169,12 @@ define([
 
             this.$inLeft.add(this.$inRight)
                 .css('width', this.$inLeft.width() + 'px')
-                .css('transition', 'all 1s ease-in-out')
                 .addClass('in')
                 .removeClass('out')
                 ;
 
             setTimeout(function(){
+                self.$inLeft.add(self.$inRight).css('transition', 'all 1s ease-in-out');
                 self.$inLeft.css('transform', self.getPos(self.$xsPlace.eq(0)).str).css('width', w);
                 self.$inRight.css('transform', self.getPos(self.$xsPlace.eq(1)).str).css('width', w);
             }, 50);

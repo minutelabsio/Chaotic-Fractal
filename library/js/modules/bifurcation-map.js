@@ -214,8 +214,10 @@ define([
             // stage
             var start;
             function grab( e ){
-                self.flickBy( 0, 0 );
-                start = self.position.clone();
+                if ( e.pointers.length === 1 ){
+                    self.flickBy( 0, 0 );
+                    start = self.position.clone();
+                }
             }
 
             function move( e ){
@@ -246,6 +248,10 @@ define([
                 .on('panmove', move)
                 .on('panend', release)
                 .on('tap', changeR);
+
+            mc.on('pinch', function(e){
+                self.scaleTo( e.scale, e.scale );
+            });
 
             self.$chart.on('mousewheel', function( e ){
                 e.preventDefault();

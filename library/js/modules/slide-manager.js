@@ -3,12 +3,14 @@ define([
     'moddef',
     'hammerjs',
     'vendor/raf',
+    'util/helpers',
     'tween'
 ], function(
     $,
     M,
     Hammer,
     _raf,
+    helpers,
     TWEEN
 ) {
     'use strict';
@@ -43,21 +45,28 @@ define([
             });
 
             // swiping
-            var start;
-            var mc = Hammer( this.$el[0] );
-            mc.on('panstart', function( e ){
-                start = $(document).scrollTop();
+            var start, lastpos, vy;
+            var $doc = $(document);
+            var intr = helpers.Interval(60, function(){
+                var scr = $doc.scrollTop();
+                vy = (scr - lastpos) / 60;
+                lastpos = scr;
+            }).pause();
+            this.$el.on('touchstart', function( e ){
+                lastpos = start = $(document).scrollTop();
+                intr.resume();
             });
-            mc.on('panend', function( e ){
+            this.$el.on('touchend', function( e ){
                 if ( $(document).scrollTop() === start ){
                     // if we didn't scroll, do nothing
                     return;
                 }
 
                 start = null;
-                if ( e.velocityY > 0.5 ){
+                intr.pause();
+                if ( vy > 0.5 ){
                     self.goto('next');
-                } else if ( e.velocityY < -0.5 ){
+                } else if ( vy < -0.5 ){
                     self.goto('prev');
                 } else {
                     self.goto('nearest');
@@ -73,6 +82,12 @@ define([
                 } else {
                     self.goto('prev');
                 }
+            });
+
+            this.$el.css({
+                'touch-action': '',
+                '-webkit-user-select': '',
+                '-webkit-user-drag': ''
             });
         }
 
@@ -96,10 +111,6 @@ define([
             }
 
             page = Math.max(0, Math.min(this.$slides.length - 1, page));
-
-            if ( page === this.page ){
-                return;
-            }
 
             this.emit('changing', { prev: this.page, next: page });
             this.page = page;
