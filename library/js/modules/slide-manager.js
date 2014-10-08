@@ -119,6 +119,11 @@ define([
             var pos = this.$slides.eq( page ).offset().top;
             var $doc = $(document);
 
+            if ( v === true ){
+                $doc.scrollTop( pos );
+                return;
+            }
+
             if ( self.tween ){
                 self.tween.stop();
             }
@@ -143,8 +148,8 @@ define([
             var self = this;
 
             if ( this.tween ){
-                self.resizewait = true;
                 if ( !self.resizewait ){
+                    self.resizewait = true;
                     self.on('page', function(){
                         self.resizewait = false;
                         self.resize();
@@ -154,6 +159,7 @@ define([
             }
 
             this.$slides.height( window.innerHeight );
+            this.goto('nearest', true);
         }
 
     }, ['events']);
