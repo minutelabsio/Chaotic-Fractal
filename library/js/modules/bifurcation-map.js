@@ -5,6 +5,7 @@ define([
     'tween',
     'util/helpers',
     'hammerjs',
+    'touchswipe',
     'd3',
     'pixi',
     'util/scale',
@@ -17,6 +18,7 @@ define([
     TWEEN,
     helpers,
     Hammer,
+    _touchswipe,
     d3,
     PIXI,
     Scale,
@@ -91,11 +93,14 @@ define([
             this.stage.addChild( this.zoomContainer );
 
             this.rLine = new PIXI.Graphics();
-            this.rLine.lineStyle( 2, 0x555555, 0.4 );
+            this.rLine.lineStyle( 2, 0x55aa55, 0.4 );
             this.rLine.moveTo(0, this.yaxis.range[1] - this.height);
             this.rLine.lineTo(0, this.yaxis.range[0] + this.height);
             this.panContainer.addChild( this.rLine );
             this.unscale.push(this.rLine);
+
+            // buttons
+            this.$chart.append('<div class="controls btn-group"><button class="zoom-in pop">+</button><button class="zoom-out pop">-</button></div>');
 
             self.initEvents();
             self.initMap();
@@ -242,15 +247,35 @@ define([
                 self.emit( 'set:x', vals[1] );
             }
 
-            var mc = new Hammer( self.$chart[0] );
+            self.$chart.on('click', '.zoom-in', function( e ){
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                self.zoomBy( 0.5, 0.5 );
+            });
+            self.$chart.on('click', '.zoom-out', function( e ){
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                self.zoomBy( -0.5, -0.5 );
+            });
+
+            var mc = new Hammer( self.renderer.view );
             mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
             mc.on('panstart', grab)
                 .on('panmove', move)
                 .on('panend', release)
                 .on('tap', changeR);
 
-            mc.on('pinch', function(e){
-                self.scaleTo( e.scale, e.scale );
+            var zoomStart;
+            self.$chart.swipe({
+                pinchStatus:function(event, phase, direction, distance, duration, fingerCount, pinchZoom) {
+                    if ( duration === 0 ){
+                        zoomStart = self.scale.x;
+                    }
+                    var z = zoomStart * pinchZoom;
+                    self.scaleTo( z, z );
+                }
+                ,fingers: 2
+                ,pinchThreshold: 0
             });
 
             self.$chart.on('mousewheel', function( e ){

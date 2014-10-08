@@ -52,6 +52,7 @@ define([
                 vy = (scr - lastpos) / 60;
                 lastpos = scr;
             }).pause();
+
             this.$el.on('touchstart', function( e ){
                 lastpos = start = $(document).scrollTop();
                 intr.resume();
@@ -65,9 +66,9 @@ define([
                 start = null;
                 intr.pause();
                 if ( vy > 0.5 ){
-                    self.goto('next');
+                    self.goto('next', vy);
                 } else if ( vy < -0.5 ){
-                    self.goto('prev');
+                    self.goto('prev', vy);
                 } else {
                     self.goto('nearest');
                 }
@@ -99,7 +100,7 @@ define([
             return Math.round( pos );
         }
 
-        ,goto: function( page ){
+        ,goto: function( page, v ){
             var self = this;
 
             if ( page === 'next' ){
@@ -121,8 +122,9 @@ define([
             if ( self.tween ){
                 self.tween.stop();
             }
+            var d = pos - $doc.scrollTop();
             self.tween = new TWEEN.Tween({ pos: $doc.scrollTop() })
-                .to({ pos: pos }, 1000)
+                .to({ pos: pos }, v ? 2 * Math.abs(d / v) : 1000 )
                 .easing( TWEEN.Easing.Quadratic.Out )
                 .onUpdate(function() {
 
@@ -139,6 +141,17 @@ define([
 
         ,resize: function(){
             var self = this;
+
+            if ( this.tween ){
+                self.resizewait = true;
+                if ( !self.resizewait ){
+                    self.on('page', function(){
+                        self.resizewait = false;
+                        self.resize();
+                    });
+                }
+                return;
+            }
 
             this.$slides.height( window.innerHeight );
         }

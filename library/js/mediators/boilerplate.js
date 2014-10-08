@@ -50,8 +50,8 @@ define([
                 el: '#story'
             });
 
-            $(document).on('click touchstart', '#story .btn-continue', function(e){
-                // e.preventDefault();
+            $(document).on('click', '#story .btn-continue', function(e){
+                e.preventDefault();
                 self.slides.goto('next');
             });
 
@@ -163,6 +163,7 @@ define([
 
             $('body').removeClass('loading');
             $('html, body').scrollTop(0);
+            self.slides.page = 0;
 
         }
 

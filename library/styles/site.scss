@@ -147,6 +147,14 @@ body.loading {
         cursor: move;
         // @include box-shadow(inset 0 0 5px rgba(0, 0, 0, 0.6));
     }
+
+    .controls {
+        position: absolute;
+        right: 0;
+        top: 0;
+        margin: 0;
+        z-index: 2;
+    }
 }
 
 .equation {
