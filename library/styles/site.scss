@@ -70,10 +70,11 @@ body.loading {
         content: 'loading...';
         position: fixed;
         z-index: 2;
-        top: 62%;
+        top: 50%;
         left: 50%;
         font-size: 3em;
         margin-left: -1.7em;
+        margin-top: 2em;
         color: $deep-grey-dark;
     }
 }
@@ -319,5 +320,15 @@ body.loading {
 @media screen and (max-width: 800px) {
     .slide3 .equation {
         font-size: 1.5em;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    body {
+        font-size: 80%;
+    }
+
+    #story section .eq-demo {
+        font-size: 0.6em;
     }
 }
