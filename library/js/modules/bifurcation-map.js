@@ -27,6 +27,8 @@ define([
 ) {
     'use strict';
 
+    var tileFolderUrl = '../../images/bifurcation/';
+
     var tileDims = {
         x: 1600
         ,y: 900
@@ -543,7 +545,7 @@ define([
 
             var self = this
                 ,layer = this.getTileLayer( zoom )
-                ,src = require.toUrl( '../../images/bifurcation/' + zoom + 'x-' + i + '-' + j + '.jpg' )
+                ,src = require.toUrl( tileFolderUrl + zoom + 'x-' + i + '-' + j + '.jpg?dl=1' )
                 ,tile = layer.getChildAt( this.getTileIndex( zoom, i, j ) )
                 ;
 
