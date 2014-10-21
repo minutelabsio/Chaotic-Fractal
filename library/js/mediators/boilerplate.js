@@ -122,7 +122,7 @@ define([
                 }
             }).on('set slide', function(){
                 var r = $(this).val();
-                eqn.setR( (r/100).toFixed(4) );
+                eqn.setR( (r/100).toFixed(3) );
             });
 
             // equation animation tickers

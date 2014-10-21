@@ -27,6 +27,8 @@ define([
             this.color = options.color || '#333';
             this.lineColor = options.lineColor || 0xcc0000;
 
+            this.axisThickness = 60;
+            this.topPad = 20;
             this.scales = {
                 x: d3.scale.linear()
                 ,y: d3.scale.linear()
@@ -42,7 +44,7 @@ define([
             }
             this.stage = new PIXI.Stage(0x000000);
             this.$el.append( $(this.renderer.view).css('position', 'absolute').css('zIndex', 2) );
-            this.$el.find('canvas').css('top', 0).css('left', 0);
+            this.$el.find('canvas').css('top', this.topPad).css('right', 0);
 
             this.circle = new PIXI.Graphics();
             this.circle.lineStyle( 1, this.lineColor );
@@ -50,19 +52,82 @@ define([
             this.circle.position.set( -10, -10 );
             this.stage.addChild( this.circle );
 
+            this.initAxes();
             this.resize( w, h );
+        }
+
+        ,initAxes: function(){
+            var self = this
+                ,svg
+                ,x
+                ,y
+                ,t = self.axisThickness
+                ;
+
+            self.d3xAxis = d3.svg.axis();
+            self.d3yAxis = d3.svg.axis().orient('left');
+
+            y = d3.select( self.$el[0] ).append( 'svg' ).attr('class', 'yaxis')
+                .style('position', 'absolute')
+                .style('top', '0')
+                .style('left', '0')
+                .attr('width', t)
+                .attr('height', self.height)
+                ;
+
+            x = d3.select( self.$el[0] ).append( 'svg' ).attr('class', 'xaxis')
+                .style('position', 'absolute')
+                .style('bottom', '0')
+                .style('left', '0')
+                .attr('width', this.width)
+                .attr('height', t)
+                ;
+
+            self.d3xAxisEl = x.append('g')
+                .attr('transform', 'translate('+t+',0)')
+                .call( self.scales.x )
+                ;
+
+            self.d3yAxisEl = y.append('g')
+                .attr('transform', 'translate('+t+','+ this.topPad + ')')
+                .call( self.scales.y )
+                ;
+
+            this.on('resize', function(){
+                x.attr('width', self.width);
+                y.attr('height', self.height);
+                self.drawAxes();
+            });
+
+            self.drawAxes();
+        }
+
+        ,drawAxes: function(){
+
+            var self = this
+                ,x = self.scales.x
+                ,y = self.scales.y
+                ;
+
+            self.d3xAxis.scale( x );
+            self.d3yAxis.scale( y );
+
+            self.d3xAxisEl.call( self.d3xAxis );
+            self.d3yAxisEl.call( self.d3yAxis );
+
         }
 
         ,resize: function( w, h ){
             this.width = w;
             this.height = h;
-            this.canvas.width = w;
-            this.canvas.height = h;
+            this.canvas.width = w - this.axisThickness;
+            this.canvas.height = h - this.axisThickness - this.topPad;
 
             this.$el.width( w ).height( h );
-            this.renderer.resize( w, h );
-            this.scales.x.range([0, w]);
-            this.scales.y.range([0, h]);
+            this.renderer.resize( w - this.axisThickness, h - this.axisThickness - this.topPad );
+            this.scales.x.range([0, w - this.axisThickness]);
+            this.scales.y.range([0, h - this.axisThickness - this.topPad]);
+            this.emit('resize');
         }
 
         ,render: function(){
