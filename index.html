@@ -5,75 +5,30 @@ layout: default
 <div id="story">
 <section class="slide1">
     <div class="content">
-        Choose a number just for fun,<br/>
-        between (but not including) 0 and 1.<br/>
-        Subtract it from 1 to get another,<br/>
-        and multiply it by the other.
-
-        <div class="eq-demo">
-            <div class="equation">
-                <div class="main">
-                    <span class="x-input">0.50</span>
-                    <span class="times">x</span>
-                    <span class="c-bracket">(</span>
-                    <span>1 - </span>
-                    <span class="x-input">0.50</span>
-                    <span class="c-bracket">)</span>
-                </div>
-            </div>
-
-            <div class="slider-wrap">
-                <span>0</span><div class="slider"></div><span>1</span>
-            </div>
-        </div>
+        Why is the logistic map so awesome?
         <a href="javascript:void(0);" class="btn-continue">continue...</a>
     </div>
 </section>
-<section class="slide2">
+
+<section class="generator-slide">
     <div class="content">
-        Next we need to choose one more,<br/>
-        this time between 3 and 4.<br/>
-        Call it "r" so we don’t lose track.<br/>
-        (For future iterations we’ll need it back)
+        <div id="guided-chart">
 
-        <div class="eq-demo">
-            <div class="equation">
-                <div class="main">
-                    <span class="r-wrap"><span class="r">3.30</span></span>
-                    <span class="times">x</span>
-                    <span class="x-input">0.50</span>
-                    <span class="times">x</span>
-                    <span class="c-bracket">(</span>
-                    <span>1 - </span>
-                    <span class="x-input">0.50</span>
-                    <span class="c-bracket">)</span>
-                </div>
-            </div>
-
-            <div class="slider-wrap">
-                <span>3</span><div class="slider"></div><span>4</span>
-            </div>
         </div>
-        <a href="javascript:void(0);" class="btn-continue">continue...</a>
-    </div>
-</section>
-<section class="slide3">
-    <div class="content">
-        The final expression is not so complex:<br/>
-        "r" times "x" times "1 - x"<br/>
-        The result becomes "x" reborn!<br/>
-        Repeating the process will adorn...
-
+        <div class="slider r-slider"></div>
+        <div class="slider-wrap">
+            <span>slower</span><div class="slider speed-slider"></div><span>faster</span>
+        </div>
         <div class="equation moving-equation">
             <div class="main">
-                <span class="r-wrap"><span class="r">3.30</span></span>
+                <span class="r-wrap"><span class="r">0.000</span></span>
                 <span class="times">x</span>
                 <!-- <span class="sq-bracket">[</span> -->
-                <span class="x-input">0.50</span>
+                <span class="x-input">0.000000</span>
                 <span class="times">x</span>
                 <span class="c-bracket">(</span>
                 <span>1 - </span>
-                <span class="x-input">0.50</span>
+                <span class="x-input">0.000000</span>
                 <span class="c-bracket">)</span>
                 <!-- <span class="sq-bracket">]</span> -->
                 <span>=</span>
@@ -83,15 +38,6 @@ layout: default
             </div>
         </div>
         <a href="javascript:void(0);" class="btn-continue">continue...</a>
-    </div>
-</section>
-<section>
-    <div class="content">
-        For each new "x" make a dot<br/>
-        on an "r" vs. "x" plot.<br/>
-        The end result is a pleasing sight:<br/>
-        self-similar patterns to stare at all night.
-        <a href="javascript:void(0);" class="btn-continue">see the plot...</a>
     </div>
 </section>
 

@@ -86,6 +86,7 @@ body.loading {
         @extend .hv-container;
         font-size: 1.5em;
         line-height: 1.7;
+        margin-bottom: 1em;
 
         .content {
             display: inline-block;
@@ -255,7 +256,7 @@ body.loading {
 
 #story section {
     .noUi-connect {
-        background: $red-dark;
+        background: $green-dark;
     }
 
     .slider-wrap {
@@ -282,29 +283,13 @@ body.loading {
     }
 }
 
-.slide1 {
 
-    .eq-demo .equation .x-input {
-        color: $red-dark;
+#story .generator-slide {
+    .slider.r-slider {
+        @include box-sizing(border-box);
+        width: 90%;
+        background: $red-dark;
     }
-}
-
-.slide2 {
-
-    .eq-demo .equation .x-input {
-        color: $deep-grey-dark;
-    }
-
-    .eq-demo .equation .r {
-        position: relative;
-        right: 0;
-        top: -0.1em;
-        display: inline-block;
-        color: $red-dark;
-    }
-}
-
-.slide3 {
     .equation {
         margin-top: 1em;
         font-size: 1.8em;
