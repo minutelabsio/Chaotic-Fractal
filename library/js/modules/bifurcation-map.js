@@ -200,11 +200,7 @@ define([
             frame();
 
             // other events
-            self.on('frame', function( e, dt ){
-
-                TWEEN.update();
-            });
-
+            
             $(window).on('resize', function(){
                 self.resize();
                 self.renderer.resize(self.width, self.height);

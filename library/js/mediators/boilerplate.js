@@ -2,8 +2,11 @@ define([
     'jquery',
     'jquery.nouislider',
     'moddef',
+    'vendor/raf',
+    'tween',
     'util/helpers',
     'hammerjs',
+    'modules/point-plotter',
     'modules/logical-map-equation',
     'modules/slide-manager',
     'modules/bifurcation-map'
@@ -11,8 +14,11 @@ define([
     $,
     _jqnoui,
     M,
+    _raf,
+    TWEEN,
     helpers,
     Hammer,
+    PointPlotter,
     Equation,
     SlideManager,
     BifurcationChart
@@ -34,6 +40,15 @@ define([
                 self.resolve('domready');
             });
 
+            function tweenupdate(){
+
+                window.requestAnimationFrame( tweenupdate );
+                TWEEN.update();
+                self.emit('frame');
+            }
+
+            tweenupdate();
+
             // this.emit('resize');
         }
 
@@ -41,7 +56,7 @@ define([
         ,onDomReady: function(){
 
             var self = this;
-            var vals = { x: 0.5, r: 3.3 };
+            var vals = { x: 0.5, r: 3.6 };
 
             $('#chart').append( this.chart.$chart );
             this.chart.resize();
@@ -74,56 +89,73 @@ define([
             });
 
             // sliders
-            var $slide1 = $('.slide1');
-            var $slide1XInputs = $slide1.find('.x-input');
-            var $slide2 = $('.slide2');
-            var $slide2XInputs = $slide2.find('.x-input');
-            var $slide2RInput = $slide2.find('.r');
             var $chartSlide = $('.chart-slide');
+            var genIdx = $('#story .generator-slide').index();
+            var chartIdx = $('#story .chart-slide').index();
 
-            $slide1.find('.eq-demo .slider').noUiSlider({
-                start: vals.x
-                ,connect: 'lower'
-                ,range: {
-                    min: 0.01
-                    ,max: 0.99
-                }
-            }).on('set slide', function(){
-                var val = $(this).val();
-                vals.x = val;
-                $slide1XInputs.html( val );
-                $slide2XInputs.html( val );
+            var genChart = PointPlotter({ el: '#guided-chart', width: window.innerWidth, height: window.innerHeight - 320, color: 'rgba(10, 10, 100, 0.6)' });
+            genChart.scales.x.domain([1, 5]);
+            genChart.scales.y.domain([1, 0]);
+            this.on('frame', function(){
+                genChart.render();
             });
+            genChart.refresh();
 
-            $slide2.find('.eq-demo .slider').noUiSlider({
-                start: vals.r
-                ,connect: 'lower'
-                ,range: {
-                    min: 3
-                    ,max: 3.99
-                }
-            }).on('set slide', function(){
-                var val = $(this).val();
-                vals.r = val;
-                $slide2RInput.html( val );
+            $(window).on('resize', function(){
+                var w = window.innerWidth;
+                var h = window.innerHeight - 320;
+                genChart.resize( w, h );
             });
 
             var eqn = Equation({
-                el: '.slide3 .moving-equation'
+                el: '.generator-slide .moving-equation'
                 ,x: vals.x
-                ,r: vals.r
+                ,r: 3.99
+            });
+
+            var $genRSlider = $('#story .generator-slide .r-slider').noUiSlider({
+                start: 399
+                ,step: 0.1
+                ,connect: 'lower'
+                ,range: {
+                    min: 1 * 100
+                    ,max: 3.99 * 100
+                }
+            }).on('set slide', function(){
+                var r = $(this).val();
+                eqn.setR( (r/100).toFixed(3) );
             });
 
             // equation animation tickers
             var ticker1 = helpers.Interval( 3000, function(){
                 eqn.next();
             });
-            ticker1.pause( this.slides.page !== 2 );
+            ticker1.pause( this.slides.page !== genIdx );
+
+            var $genSpeedSlider = $('#story .generator-slide .speed-slider').noUiSlider({
+                start: Math.exp(1)
+                ,connect: 'lower'
+                ,range: {
+                    min: 1
+                    ,max: Math.exp(4 - 0.06)
+                }
+            }).on('set slide', function(){
+                var val = 4000 - (Math.log($(this).val())*1000)|0;
+                eqn.doAnimation = ( val > 1000 )
+                ticker1.duration = val;
+            });
+
+            eqn.on('next', function( e, x ){
+                genChart.plot( eqn.r, x );
+                if ( ticker1.duration > 1000 ){
+                    genChart.crosshair( eqn.r, x );
+                }
+            });
 
             var ticker2 = helpers.Interval( 3000, function(){
                 self.equation.next();
             });
-            ticker2.pause( this.slides.page !== 4 );
+            ticker2.pause( this.slides.page !== chartIdx );
 
             self.chart.on('set:x', function( e, x ){
                 self.equation.$inLeft.hide();
@@ -134,17 +166,9 @@ define([
             });
 
             // turn on/off equations when slides change to correct page
-            this.slides.on('changing', function( e, pages ){
-                if ( pages.next === 2 || pages.next === 4 ){
-                    eqn.setR( vals.r );
-                    eqn.setX( vals.x );
-                    self.equation.setR( vals.r );
-                    self.equation.setX( vals.x );
-                    self.chart.setR( vals.r );
-                }
-            }).on('page', function( e, page ){
-                ticker1.pause( page !== 2 );
-                ticker2.pause( page !== 4 );
+            this.slides.on('page', function( e, page ){
+                ticker1.pause( page !== genIdx );
+                ticker2.pause( page !== chartIdx );
             });
 
 
@@ -162,8 +186,10 @@ define([
             });
 
             $('body').removeClass('loading');
-            $('html, body').scrollTop(0);
-            self.slides.page = 0;
+            setTimeout(function(){
+                $('html, body').scrollTop(0);
+                self.slides.page = 0;
+            }, 100);
 
         }
 

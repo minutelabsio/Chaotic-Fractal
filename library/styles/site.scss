@@ -86,6 +86,7 @@ body.loading {
         @extend .hv-container;
         font-size: 1.5em;
         line-height: 1.7;
+        margin-bottom: 1em;
 
         .content {
             display: inline-block;
@@ -111,7 +112,8 @@ body.loading {
     }
 }
 
-#chart {
+#chart,
+#guided-chart {
     position: relative;
     width: 100%;
 
@@ -255,7 +257,7 @@ body.loading {
 
 #story section {
     .noUi-connect {
-        background: $red-dark;
+        background: $green-dark;
     }
 
     .slider-wrap {
@@ -282,32 +284,26 @@ body.loading {
     }
 }
 
-.slide1 {
 
-    .eq-demo .equation .x-input {
-        color: $red-dark;
+#story .generator-slide {
+    .column p {
+        margin-left: 1em;
     }
-}
-
-.slide2 {
-
-    .eq-demo .equation .x-input {
-        color: $deep-grey-dark;
+    .slider.r-slider {
+        @include box-sizing(border-box);
+        width: 90%;
+        background: $red-dark;
     }
-
-    .eq-demo .equation .r {
-        position: relative;
-        right: 0;
-        top: -0.1em;
-        display: inline-block;
-        color: $red-dark;
-    }
-}
-
-.slide3 {
     .equation {
+        width: 70%;
         margin-top: 1em;
-        font-size: 1.8em;
+        font-size: 1.6em;
+    }
+}
+
+#viewport .generator-slide {
+    .row .slider {
+        width: 40%;
     }
 }
 
@@ -320,6 +316,19 @@ body.loading {
 @media screen and (max-width: 800px) {
     .slide3 .equation {
         font-size: 1.5em;
+    }
+
+    #viewport .generator-slide .row .slider {
+        width: 36%;
+    }
+    #story .generator-slide {
+        .column p {
+            font-size: 0.85em;
+        }
+        .equation {
+            font-size: 1.2em;
+            width: 65%;
+        }
     }
 }
 
