@@ -286,14 +286,24 @@ body.loading {
 
 
 #story .generator-slide {
+    .column p {
+        margin-left: 1em;
+    }
     .slider.r-slider {
         @include box-sizing(border-box);
         width: 90%;
         background: $red-dark;
     }
     .equation {
+        width: 70%;
         margin-top: 1em;
-        font-size: 1.8em;
+        font-size: 1.6em;
+    }
+}
+
+#viewport .generator-slide {
+    .row .slider {
+        width: 40%;
     }
 }
 
@@ -306,6 +316,19 @@ body.loading {
 @media screen and (max-width: 800px) {
     .slide3 .equation {
         font-size: 1.5em;
+    }
+
+    #viewport .generator-slide .row .slider {
+        width: 36%;
+    }
+    #story .generator-slide {
+        .column p {
+            font-size: 0.85em;
+        }
+        .equation {
+            font-size: 1.2em;
+            width: 65%;
+        }
     }
 }
 

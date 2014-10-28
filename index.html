@@ -5,7 +5,7 @@ layout: default
 <div id="story">
 <section class="slide1">
     <div class="content">
-        Why is the logistic map so awesome?
+        [Explain logistic map...]
         <a href="javascript:void(0);" class="btn-continue">continue...</a>
     </div>
 </section>
@@ -15,11 +15,21 @@ layout: default
         <div id="guided-chart">
 
         </div>
-        <div class="slider r-slider"></div>
-        <div class="slider-wrap">
-            <span>slower</span><div class="slider speed-slider"></div><span>faster</span>
+        <div class="row">
+            <div class="column half">
+                <p>Let's make a dot for every "r" (red) and "x" (blue) value in the equation.</p>
+                <p>Turn up the speed to plot lots of points and see the pattern.</p>
+            </div>
+            <div class="column half last">
+                <div class="slider-wrap">
+                    <span>r: </span><div class="slider r-slider"></div>
+                </div>
+                <div class="slider-wrap">
+                    <span>slower</span><div class="slider speed-slider"></div><span>faster</span>
+                </div>
+            </div>
         </div>
-        <div class="equation moving-equation">
+        <div class="row equation moving-equation">
             <div class="main">
                 <span class="r-wrap"><span class="r">0.000</span></span>
                 <span class="times">x</span>

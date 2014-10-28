@@ -117,6 +117,10 @@ define([
 
         }
 
+        ,refresh: function(){
+            this.resize( this.width, this.height );
+        }
+
         ,resize: function( w, h ){
             this.width = w;
             this.height = h;
@@ -142,6 +146,7 @@ define([
             y = this.scales.y( y );
 
             var stage = this.stage
+                ,circle = this.circle
                 ,r = 10
                 ,c = this.lineColor
                 ,dx = Math.max( x, this.width - x )

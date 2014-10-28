@@ -99,6 +99,7 @@ define([
             this.on('frame', function(){
                 genChart.render();
             });
+            genChart.refresh();
 
             $(window).on('resize', function(){
                 var w = window.innerWidth;
@@ -185,8 +186,10 @@ define([
             });
 
             $('body').removeClass('loading');
-            $('html, body').scrollTop(0);
-            self.slides.page = 0;
+            setTimeout(function(){
+                $('html, body').scrollTop(0);
+                self.slides.page = 0;
+            }, 100);
 
         }
 
