@@ -161,6 +161,13 @@ body.loading {
     }
 }
 
+#chart {
+    &,
+    > div {
+        overflow: hidden;
+    }
+}
+
 .equation {
 
     font-size: 2em;
