@@ -83,14 +83,14 @@ body.loading {
     section {
         position: relative;
         width: 100%;
-        @extend .hv-container;
+        // @extend .hv-container;
         font-size: 1.5em;
         line-height: 1.7;
         margin-bottom: 1em;
 
         .content {
-            display: inline-block;
-            vertical-align: middle;
+            // display: inline-block;
+            // vertical-align: middle;
             text-align: center;
 
             .btn-continue {
@@ -108,6 +108,14 @@ body.loading {
                     background: $blue-dark;
                 }
             }
+        }
+    }
+
+    .intro-slide {
+        @extend .hv-container;
+        .content {
+            display: inline-block;
+            vertical-align: middle;
         }
     }
 }

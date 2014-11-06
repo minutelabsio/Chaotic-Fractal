@@ -73,7 +73,7 @@ define([
                     self.goto('nearest');
                 }
             });
-            this.$el.on('mousewheel', function( e ){
+            this.$el.on('wheel', function( e ){
                 if ( self.tween || e.originalEvent.defaultPrevented ){
                     e.preventDefault();
                     return;
