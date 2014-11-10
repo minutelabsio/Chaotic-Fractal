@@ -124,6 +124,8 @@ body.loading {
 
     .intro-slide {
         @extend .hv-container;
+        background: url(http://labs.minutelabs.io/Chaotic-Fractal/library/images/bifurcation/0x-0-0.jpg) no-repeat center center;
+        background-size: 100%;
         .content {
             display: inline-block;
             vertical-align: middle;
@@ -133,6 +135,7 @@ body.loading {
                 width: 60%;
                 font-size: 0.75em;
                 text-align: left;
+                max-width: 32em;
             }
 
             .first {
@@ -408,6 +411,16 @@ body.loading {
     }
 }
 
+@media screen and (min-width: 1800px) {
+    body {
+        font-size: 160%;
+    }
+
+    #story section .eq-demo {
+        font-size: 1.4em;
+    }
+}
+
 @media screen and (max-width: 800px) {
     .slide3 .equation {
         font-size: 1.5em;
@@ -436,7 +449,7 @@ body.loading {
     }
 }
 
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 600px) {
     body {
         font-size: 80%;
     }
