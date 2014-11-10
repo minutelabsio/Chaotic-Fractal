@@ -35,6 +35,15 @@
     }
 }
 
+.noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 html, body, #wrap-outer {
     height: 100%;
     background: #fff;
@@ -99,13 +108,15 @@ body.loading {
                 right: 0em;
                 display: inline-block;
                 text-decoration: none;
-                background: $deep-grey-dark;
-                color: $grey-light;
-                padding: 1em 2em;
+                background: transparentize($deep-grey-dark, 0.8);
+                color: $deep-grey-dark;
+                border: 1px solid transparentize($blue-dark, 0.3);
+                padding: 0.4em 1.5em;
                 @include border-radius( 5px 0 0 );
 
                 &:active {
                     background: $blue-dark;
+                    color: white;
                 }
             }
         }
@@ -116,6 +127,50 @@ body.loading {
         .content {
             display: inline-block;
             vertical-align: middle;
+
+            p {
+                position: absolute;
+                width: 60%;
+                font-size: 0.75em;
+                text-align: left;
+            }
+
+            .first {
+                top: 15%;
+                left: 17%;
+            }
+
+            .second {
+                bottom: 10%;
+                right: 7%;
+                width: 36%;
+            }
+
+            .equation {
+                position: absolute;
+                top: 42%;
+                left: 16%;
+                font-size: 1.2em;
+                width: 35%;
+
+                .x-input,
+                .output {
+                    color: $blue-dark;
+                    width: auto;
+                    overflow: visible;
+
+                    sub {
+                        font-size: 0.7em;
+                    }
+                }
+
+                .main {
+                    width: 9em;
+                    > * {
+                        vertical-align: bottom;
+                    }
+                }
+            }
         }
     }
 }
@@ -166,6 +221,14 @@ body.loading {
         top: 0;
         margin: 0;
         z-index: 2;
+
+        button {
+            padding: 0em 0.5em;
+            &:hover {
+                @include transform( translate3d(0, 0, 0) );
+                @include box-shadow( none );
+            }
+        }
     }
 }
 
@@ -177,6 +240,7 @@ body.loading {
 }
 
 .equation {
+    @extend .noselect;
 
     font-size: 2em;
     line-height: 1;
@@ -310,15 +374,31 @@ body.loading {
         background: $red-dark;
     }
     .equation {
-        width: 70%;
-        margin-top: 1em;
+        // width: 70%;
+        height: 1.5em;
+        margin-top: 0em;
         font-size: 1.6em;
+    }
+
+    .column.last {
+        text-align: left;
+
+        .slider-wrap {
+            span:first-child {
+                display: inline-block;
+                width: 3em;
+            }
+        }
     }
 }
 
 #viewport .generator-slide {
     .row .slider {
-        width: 40%;
+        width: 56%;
+    }
+
+    .row .speed-slider {
+        width: 30%;
     }
 }
 
@@ -334,15 +414,24 @@ body.loading {
     }
 
     #viewport .generator-slide .row .slider {
-        width: 36%;
+        // width: 30%;
     }
     #story .generator-slide {
+        .column {
+            font-size: 0.85em;
+        }
         .column p {
             font-size: 0.85em;
         }
         .equation {
             font-size: 1.2em;
-            width: 65%;
+            // width: 65%;
+        }
+    }
+
+    #story .intro-slide .content {
+        .second {
+            width: 60%;
         }
     }
 }
