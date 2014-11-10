@@ -105,6 +105,7 @@ define([
                 var w = window.innerWidth;
                 var h = window.innerHeight - 320;
                 genChart.resize( w, h );
+                self.emit('resize');
             });
 
             var eqn = Equation({
@@ -191,6 +192,10 @@ define([
                 self.slides.page = 0;
             }, 100);
 
+            self.on('resize', function(){
+                eqn.refresh();
+                self.equation.refresh();
+            });
         }
 
     }, ['events']);

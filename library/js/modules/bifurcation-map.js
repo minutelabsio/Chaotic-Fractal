@@ -200,7 +200,7 @@ define([
             frame();
 
             // other events
-            
+
             $(window).on('resize', function(){
                 self.resize();
                 self.renderer.resize(self.width, self.height);

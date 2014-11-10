@@ -49,6 +49,15 @@ define([
             // }, 4000);
         }
 
+        ,refresh: function(){
+            var self = this
+                ,w = self.$xsPlace.width() + 'px'
+                ;
+            self.$inLeft.css('transform', self.getPos(self.$xsPlace.eq(0)).str).css('width', w);
+            self.$inRight.css('transform', self.getPos(self.$xsPlace.eq(1)).str).css('width', w);
+            self.$outBox.css('transform', self.getPos(self.$outPlace).str);
+        }
+
         ,setX: function( x ){
             this.x = x;
             this.emit('set:x', x);

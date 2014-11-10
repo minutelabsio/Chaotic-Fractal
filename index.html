@@ -5,7 +5,27 @@ layout: default
 <div id="story">
 <section class="intro-slide">
     <div class="content">
-        [Explain logistic map...]
+        <img src="http://labs.minutelabs.io/Chaotic-Fractal/library/images/bifurcation/0x-0-0.jpg">
+        <div class="equation">
+            <div class="main">
+                <span class="r-wrap"><span class="r">r</span></span>
+                <span class="times">x</span>
+                <!-- <span class="sq-bracket">[</span> -->
+                <span class="x-input">x<sub>n</sub></span>
+                <span class="times">x</span>
+                <span class="c-bracket">(</span>
+                <span>1 - </span>
+                <span class="x-input">x<sub>n</sub></span>
+                <span class="c-bracket">)</span>
+                <!-- <span class="sq-bracket">]</span> -->
+                <span>=</span>
+                <span class="output-wrap">
+                    <span class="output">x<sub>n+1</sub></span>
+                </span>
+            </div>
+        </div>
+        <p class="first">This simple equation generates this entire complex pattern. All it takes is plotting points for every "r" (horizontal) and "x" (vertical) value. Pick a value for "r" and "x", use it to calculate the next "x" and plug that back in. Keep going and eventually the points clump together to create dark areas.</p>
+        <p class="second">Why not try it out yourself? The next pages show you specifically how it's done and let you explore the amazing depths of this fractal.</p>
         <a href="javascript:void(0);" class="btn-continue">continue...</a>
     </div>
 </section>
@@ -14,20 +34,6 @@ layout: default
     <div class="content">
         <div id="guided-chart">
 
-        </div>
-        <div class="row">
-            <div class="column half">
-                <p>Let's make a dot for every "r" (red) and "x" (blue) value in the equation.</p>
-                <p>Turn up the speed to plot lots of points and see the pattern.</p>
-            </div>
-            <div class="column half last">
-                <div class="slider-wrap">
-                    <span>r: </span><div class="slider r-slider"></div>
-                </div>
-                <div class="slider-wrap">
-                    <span>slower</span><div class="slider speed-slider"></div><span>faster</span>
-                </div>
-            </div>
         </div>
         <div class="row equation moving-equation">
             <div class="main">
@@ -47,6 +53,21 @@ layout: default
                 </span>
             </div>
         </div>
+        <div class="row">
+            <div class="column half">
+                <p>Let's make a dot for every "r" (red) and "x" (blue) value in the equation.</p>
+                <p>Turn up the speed to plot lots of points and see the pattern.</p>
+            </div>
+            <div class="column half last">
+                <div class="slider-wrap">
+                    <span>r: </span><div class="slider r-slider"></div>
+                </div>
+                <div class="slider-wrap">
+                    <span>slower</span><div class="slider speed-slider"></div><span>faster</span>
+                </div>
+            </div>
+        </div>
+
         <a href="javascript:void(0);" class="btn-continue">continue...</a>
     </div>
 </section>
